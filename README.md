@@ -8,7 +8,7 @@ This repository is the code for our paper [CrossFormer: A Versatile Vision Trans
 
 Existing vision transformers fail to build attention among objects/features of different scales (cross-scale attention), while such ability is very important to visual tasks. **CrossFormer** is a versatile vision transformer which solves this problem. Its core designs contain **C**ross-scale **E**mbedidng **L**ayer (**CEL**), **L**ong-**S**hort **D**istance **A**ttention (**L/SDA**), which work together to enable cross-scale attention.
 
-CEL blends every input embedding with multiple-scale features. LSDA split all embeddings into several groups, and the self-attention is only computed within each group (embeddings with the same color border belong to the same group.).
+**CEL** blends every input embedding with multiple-scale features. **L/SDA** split all embeddings into several groups, and the self-attention is only computed within each group (embeddings with the same color border belong to the same group.).
 
 ![](./figures/github_pic.png)
 
@@ -57,8 +57,8 @@ Models trained on ImageNet-1K and evaluated on its validation set. The input ima
 
 | Architectures | Params | FLOPs | Accuracy | Pretrained Model |
 | ------------- | ------: | -----: | --------: | :----------------: |
-| *ResNet-50* | *25.6M* | *4.1G* | *76.2%* | *for reference* |
-| *RegNetY-8G* | *39.0M* | *8.0G* | *81.7%* | *for reference* |
+| *ResNet-50* | *25.6M* | *4.1G* | *76.2%* |                 |
+| *RegNetY-8G* | *39.0M* | *8.0G* | *81.7%* |                |
 | CrossFormer-T | 27.8M  | 2.9G  | 81.5%    | TBD             |
 | CrossFormer-S | 30.7M  | 4.9G  | 82.5%    | TBD             |
 | CrossFormer-B | 52.0M  | 9.2G  | 83.4%    | TBD             |
