@@ -61,7 +61,7 @@ Training scripts for semantic segmentation: [segmentation/README.md](./segmentat
 
 ### Image Classification
 
-Models trained on ImageNet-1K and evaluated on its validation set. The input image size is $224 \times 224$.
+Models trained on ImageNet-1K and evaluated on its validation set. The input image size is 224 x 224.
 
 | Architectures | Params | FLOPs | Accuracy | Pretrained Model |
 | ------------- | ------: | -----: | --------: | :----------------: |
