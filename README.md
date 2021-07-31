@@ -10,7 +10,7 @@ Existing vision transformers fail to build attention among objects/features of d
 
 CEL blends every input embedding with multiple-scale features. LSDA split all embeddings into several groups, and the self-attention is only computed within each group (embeddings with the same color border belong to the same group.).
 
-![](./figures/github_pic.pdf)
+![](./figures/github_pic.png)
 
 Further, we also propose a dynamic position bias (DPB) module, which makes the effective yet inflexible relative position bias apply to variable image size.
 
@@ -18,7 +18,7 @@ Now, experiments are done on four representative visual tasks, *i.e.*, image cla
 
 
 
-##Prerequisites
+## Prerequisites
 
 1. Libraries (Python3.6-based)
 
@@ -106,10 +106,10 @@ More results and pretrained models for semantic segmentation: [segmentation/READ
 ```
 @article{crossformer2021,
   title     = {CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention},
-	author    = {Wenxiao Wang and Lu Yao and Long Chen and Deng Cai and Xiaofei He and Wei Liu},
-	journal   = {CoRR},
-	volume    = {abs/21xx.xxxxx},
-	year      = {2021},
+  author    = {Wenxiao Wang and Lu Yao and Long Chen and Deng Cai and Xiaofei He and Wei Liu},
+  journal   = {CoRR},
+  volume    = {abs/21xx.xxxxx},
+  year      = {2021},
 }
 ```
 
