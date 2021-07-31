@@ -1,3 +1,121 @@
 # CrossFormer
 
-The code will be released soon ...
+This repository is the code for our paper [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention]().
+
+
+
+## Introduction
+
+Existing vision transformers fail to build attention among objects/features of different scales (cross-scale attention), while such ability is very important to visual tasks. **CrossFormer** is a versatile vision transformer which solves this problem. Its core designs contain **C**ross-scale **E**mbedidng **L**ayer (**CEL**), **L**ong-**S**hort **D**istance **A**ttention (**L/SDA**), which work together to enable cross-scale attention.
+
+CEL blends every input embedding with multiple-scale features. LSDA split all embeddings into several groups, and the self-attention is only computed within each group (embeddings with the same color border belong to the same group.).
+
+![](./figures/github_pic.pdf)
+
+Further, we also propose a dynamic position bias (DPB) module, which makes the effective yet inflexible relative position bias apply to variable image size.
+
+Now, experiments are done on four representative visual tasks, *i.e.*, image classification, objection detection, and instance/semantic segmentation. Results show that CrossFormer outperforms existing vision transformers in these tasks, especially in dense prediction tasks (*i.e.*, object detection and instance/semantic segmentation). We think it is because image classification only pays attention to one object and large-scale features, while dense prediction tasks rely more on cross-scale attention.
+
+
+
+##Prerequisites
+
+1. Libraries (Python3.6-based)
+
+```bash
+pip3 install numpy Pillow pyyaml pytorch==1.7.0 torchvision==0.8.1 timm=0.3.2
+```
+
+2. Datasets: ImageNet
+
+Requirements for detection and segmentation are listed here: [detection/README.md](./detection/README.md) 
+
+
+
+## Getting Started
+
+```bash
+python -u -m torch.distributed.launch --nproc_per_node 8 main.py \
+--cfg configs/base_patch4_group7_224.yaml --batch-size 128 \
+--data-path path_to_imagenet --output ./output
+
+# There should be two directories under the path_to_imagenet: train and validation
+# Four usable configs: tiny/small/base/large_patch4_group7_224.yaml
+```
+
+Training scripts for objection detection: [detection/README.md](./detection/README.md).
+
+Training scripts for semantic segmentation: [segmentation/README.md](./segmentation/README.md).
+
+
+
+## Results
+
+#### Image Classification
+
+Models trained on ImageNet-1K and evaluated on its validation set. The input image size is $224 \times 224$.
+
+| Architectures | Params | FLOPs | Accuracy | Pretrained Model |
+| ------------- | ------: | -----: | --------: | :----------------: |
+| *ResNet-50* | *25.6M* | *4.1G* | *76.2%* | *for reference* |
+| *RegNetY-8G* | *39.0M* | *8.0G* | *81.7%* | *for reference* |
+| CrossFormer-T | 27.8M  | 2.9G  | 81.5%    | TBD             |
+| CrossFormer-S | 30.7M  | 4.9G  | 82.5%    | TBD             |
+| CrossFormer-B | 52.0M  | 9.2G  | 83.4%    | TBD             |
+| CrossFormer-L | 92.0M  | 16.1G | 84.0%    | TBD             |
+
+More results compared with other vision transformers can be seen in the paper.
+
+#### Objection Detection & Instance Segmentation
+
+Models trained on COCO 2017. Backbones are initialized with weights pre-trained on ImageNet-1K.
+
+| Backbone      | Detection<br>Head | Learning<br>Schedule | Params | FLOPs  | AP$^b$ | AP$^m$ |
+| ------------- | ----------------- | -------------------- | ------: | ------: | ------: | ------: |
+| *ResNet-101* | *RetinaNet* | *1x* | *56.7M* | *315.0G* | *38.5* | - |
+| *ResNet-101* | *Mask-RCNN* | *1x* | *63.2M* | *336.0G* | *40.4* | *36.4* |
+| CrossFormer-S | RetinaNet         | 1x                   | 40.8M  | 282.0G | 44.4   | -      |
+| CrossFormer-B | RetinaNet         | 1x                   | 62.1M  | 389.0G | 46.2   | -      |
+| CrossFormer-S | Mask-RCNN         | 1x                   | 50.2M  | 301.0G | 45.4   | 41.4 |
+| CrossFormer-B | Mask-RCNN         | 1x                   | 71.5M  | 407.9G | 47.2   | 42.7 |
+
+More results and pretrained models for objection detection: [detection/README.md](./detection/README.md).
+
+#### Semantic Segmentation
+
+Models trained on ADE20K. Backbones are initialized with weights pre-trained on ImageNet-1K.
+
+| Backbone      | Segmentation<br>Head | Iterations | Params | FLOPs   | IOU  | MS IOU |
+| ------------- | -------------------- | ---------- | ------: | -------: | ----: | ------: |
+| *ResNet-101* | *UPerNet* | *160K* | *86.0M* | *1029.G* | *44.9* | *-* |
+| CrossFormer-S | FPN                  | 160K       | 34.3M  | 209.8G  | 46.4 | -      |
+| CrossFormer-B | FPN                  | 160K       | 55.6M  | 320.1G  | 48.0 | -      |
+| CrossFormer-L | FPN                  | 160K       | 95.4M  | 482.7G  | 49.1 | -      |
+| CrossFormer-S | UPerNet              | 160K       | 62.3M  | 979.5G  | 47.6 | 48.4 |
+| CrossFormer-B | UPerNet              | 160K       | 83.6M  | 1089.7G | 49.7 | 50.6 |
+| CrossFormer-L | UPerNet              | 160K       | 125.5M | 1257.8G | 50.4 | 51.4 |
+
+*MS IOU means IOU with multi-scale testing.*
+
+More results and pretrained models for semantic segmentation: [segmentation/README.md](./segmentation/README.md).
+
+
+
+## Citing Us
+
+```
+@article{crossformer2021,
+  title     = {CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention},
+	author    = {Wenxiao Wang and Lu Yao and Long Chen and Deng Cai and Xiaofei He and Wei Liu},
+	journal   = {CoRR},
+	volume    = {abs/21xx.xxxxx},
+	year      = {2021},
+}
+```
+
+
+
+## Acknowledgement
+
+Part of the code of this repository refers to [Swin Transformer](https://github.com/microsoft/Swin-Transformer).
+
