@@ -64,7 +64,7 @@ Training scripts for semantic segmentation: [segmentation/README.md](./segmentat
 Models trained on ImageNet-1K and evaluated on its validation set. The input image size is 224 x 224.
 
 | Architectures | Params | FLOPs | Accuracy | Pretrained Model |
-| ------------- | ------: | -----: | --------: | :----------------: |
+| ------------- | ------: | -----: | --------: | :---------------- |
 | `ResNet-50` | `25.6M` | `4.1G` | `76.2%` |      `-`        |
 | `RegNetY-8G` | `39.0M` | `8.0G` | `81.7%` |     `-`        |
 | CrossFormer-T | 27.8M  | 2.9G  | 81.5%    | [BaiduCloud](https://pan.baidu.com/s/1M45YXZgVvp6Ew9DO8UhdlA), code: nkju |
