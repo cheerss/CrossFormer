@@ -1,5 +1,8 @@
-./output
-train.json
+output
+*.json
 __pycache__
 train.sh
 train_multi_machine.sh
+*_ori.sh
+ADEChallengeData2016
+mscoco
