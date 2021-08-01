@@ -9,7 +9,7 @@ try:
     from mmcv.cnn import get_model_complexity_info
 except ImportError:
     raise ImportError('Please upgrade mmcv to >0.6.2')
-import mgvt_factory
+import crossformer_factory
 from mmcv.cnn.utils.flops_counter import get_model_complexity_info, flops_to_string, params_to_string
 
 
