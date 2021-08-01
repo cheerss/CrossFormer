@@ -25,7 +25,7 @@ pip3 install numpy Pillow pyyaml pytorch==1.7.0 torchvision==0.8.1 timm=0.3.2
 ```
 2. Dataset: ImageNet
 
-3. Requirements for detection and segmentation are listed here: [detection/README.md](./detection/README.md) 
+3. Requirements for detection/instance segmentation and semantic segmentation are listed here: [detection/README.md](./detection/README.md) or [segmentation/README.md](./segmentation/README.md)
 
 
 
