@@ -67,9 +67,9 @@ Models trained on ImageNet-1K and evaluated on its validation set. The input ima
 | ------------- | ------: | -----: | --------: | :---------------- |
 | `ResNet-50` | `25.6M` | `4.1G` | `76.2%` |      `-`        |
 | `RegNetY-8G` | `39.0M` | `8.0G` | `81.7%` |     `-`        |
-| CrossFormer-T | 27.8M  | 2.9G  | 81.5%    | [BaiduCloud](https://pan.baidu.com/s/1M45YXZgVvp6Ew9DO8UhdlA), key: nkju |
-| CrossFormer-S | 30.7M  | 4.9G  | 82.5%    | [BaiduCloud](https://pan.baidu.com/s/1Xf4MXfb_soCnJFBeNDmoQQ), key: fgqj |
-| CrossFormer-B | 52.0M  | 9.2G  | 83.4%    | [BaiduCloud](https://pan.baidu.com/s/1f5dH__UGDXb-HoOPHT5p0A), key: 7md9 |
+| CrossFormer-T | 27.8M  | 2.9G  | 81.5%    | [Google Drive](https://drive.google.com/file/d/1YSkU9enn-ITyrbxLH13zNcBYvWSEidfq/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1M45YXZgVvp6Ew9DO8UhdlA), key: nkju |
+| CrossFormer-S | 30.7M  | 4.9G  | 82.5%    | [Google Drive](https://drive.google.com/file/d/1RAkigsgr33va0RZ85S2Shs2BhXYcS6U8/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1Xf4MXfb_soCnJFBeNDmoQQ), key: fgqj |
+| CrossFormer-B | 52.0M  | 9.2G  | 83.4%    | [Google Drive](https://drive.google.com/file/d/1bK8biVCi17nz_nkt7rBfio_kywUpllSU/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1f5dH__UGDXb-HoOPHT5p0A), key: 7md9 |
 | CrossFormer-L | 92.0M  | 16.1G | **84.0%**    | *TBD*             |
 
 More results compared with other vision transformers can be seen in the [paper]().
