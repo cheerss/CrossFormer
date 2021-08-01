@@ -1,0 +1,11 @@
+MODEL:
+  TYPE: cross-scale
+  NAME: cros_tiny_patch4_group7_224
+  DROP_PATH_RATE: 0.1
+  CROS:
+    EMBED_DIM: 64
+    DEPTHS: [ 1, 1, 8, 6 ]
+    NUM_HEADS: [ 2, 4, 8, 16 ]
+    GROUP_SIZE: [ 7, 7, 7, 7 ]
+    PATCH_SIZE: [4, 8, 16, 32]
+    MERGE_SIZE: [[2, 4], [2,4], [2, 4]]

@@ -1,0 +1,11 @@
+MODEL:
+  TYPE: cross-scale
+  NAME: cros_base_patch4_group7_224
+  DROP_PATH_RATE: 0.3
+  CROS:
+    EMBED_DIM: 96
+    DEPTHS: [ 2, 2, 18, 2 ]
+    NUM_HEADS: [ 3, 6, 12, 24 ]
+    GROUP_SIZE: [ 7, 7, 7, 7 ]
+    PATCH_SIZE: [4, 8, 16, 32]
+    MERGE_SIZE: [[2, 4], [2,4], [2, 4]]
