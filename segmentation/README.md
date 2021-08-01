@@ -32,6 +32,7 @@ torch.save(ckpt["model"], "segm-pretrain-xxx.pth") ## only model weights are nee
 ```bash
 ## Use config in Results table listed below as <CONFIG_FILE>
 ./dist_train.sh <CONFIG_FILE> <GPUS> <PRETRAIN_MODEL>
+
 ## e.g. train fpn_crossformer_b model with 8 GPUs
 ./dist_train.sh configs/fpn_crossformer_b_ade20k_40k.py 8 path/to/segm-pretrain-xxx.pth
 ```
@@ -39,6 +40,7 @@ torch.save(ckpt["model"], "segm-pretrain-xxx.pth") ## only model weights are nee
 3. Inference
 ```bash
 ./dist_test.sh <CONFIG_FILE> <GPUS> <DET_CHECKPOINT_FILE>
+
 ## e.g. evaluate semantic segmentation model by mIoU
 ./dist_test.sh configs/fpn_crossformer_b_ade20k_40k.py 8 path/to/ckpt
 ```

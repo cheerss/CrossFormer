@@ -34,6 +34,7 @@ torch.save(ckpt["model"], "det-pretrain-xxx.pth") ## only model weights are need
 ```bash
 ## Use config in Results table listed below as <CONFIG_FILE>
 ./dist_train.sh <CONFIG_FILE> <GPUS> <PRETRAIN_MODEL>
+
 ## e.g. train model with 8 GPUs
 ./dist_train.sh configs/retinanet_crossformer_s_fpn_1x_coco.py 8 path/to/det-pretrain-xxx.pth
 ```
@@ -41,8 +42,10 @@ torch.save(ckpt["model"], "det-pretrain-xxx.pth") ## only model weights are need
 3. Inference
 ```bash
 ./dist_test.sh <CONFIG_FILE> <GPUS> <DET_CHECKPOINT_FILE> --eval bbox [segm]
+
 ## e.g. evaluate detection model
 ./dist_test.sh configs/retinanet_crossformer_s_fpn_1x_coco.py 8 path/to/ckpt --eval bbox
+
 ## e.g. evaluate instance segmentation model
 ./dist_test.sh configs/mask_rcnn_crossformer_s_fpn_1x_coco.py 8 path/to/ckpt --eval bbox segm
 ```
@@ -81,7 +84,7 @@ torch.save(ckpt["model"], "det-pretrain-xxx.pth") ## only model weights are need
 **Notes:**
 - Models are trained on the COCO train2017 (~118k images) and evaluated on the val2017(5k images). Backbones are initialized with weights pre-trained on ImageNet-1K.
 - Models are trained with batch size 16 on 8 V100 GPUs.
-- We adopt $1\times$​ training schedule, *i.e.*, the models are trained for 12 epochs.
+- We adopt 1x training schedule, *i.e.*, the models are trained for 12 epochs.
 - The training image is resized to the shorter side of 800 pixels, while the longer side does not exceed 1333 pixels.
 - More detailed training settings can be found in corresponding configs.
 
