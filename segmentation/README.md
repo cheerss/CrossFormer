@@ -58,9 +58,9 @@ torch.save(ckpt["model"], "segm-pretrain-xxx.pth") ## only model weights are nee
 | PVT-M         | 80K    | 48.0M | 219.0G | 41.6  | - | - |
 | PVT-L         | 80K    | 65.1M | 283.0G | 42.1  | - | - |
 | Swin-S        | 80K    | 53.2M | 274.0G | 45.2  | - | - |
-| CrossFormer-S | 80K    | 34.3M | 209.8G | 46.4  | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_s_ade20k_40k.py)   | *TBD* |
-| CrossFormer-B | 80K    | 55.6M | 320.1G | 48.0  | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_b_ade20k_40k.py)   | *TBD* |
-| CrossFormer-L | 80K    | 95.4M | 482.7G | **49.1** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_l_ade20k_40k.py)   | *TBD* |
+| **CrossFormer-S** | **80K**    | **34.3M** | **209.8G** | **46.4**  | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_s_ade20k_40k.py)   | *TBD* |
+| **CrossFormer-B** | **80K**    | **55.6M** | **320.1G** | **48.0**  | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_b_ade20k_40k.py)   | *TBD* |
+| **CrossFormer-L** | **80K**    | **95.4M** | **482.7G** | **49.1** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_l_ade20k_40k.py)   | *TBD* |
 
 ### UPerNet
 
@@ -68,17 +68,18 @@ torch.save(ckpt["model"], "segm-pretrain-xxx.pth") ## only model weights are nee
 | ------------- | :--------: | ------:| -----:| ------:| ------:| -----:| ---------------:|
 | ResNet-101    | 160K   | 86.0M | 1029.0G | 44.9  | - | - | - |
 | Swin-T        | 160K   | 60.0M | 945.0G  | 44.5  | 45.8 | - | - |
+| **CrossFormer-S** | **160K**   | **62.3M** | **979.5G**  | **47.6**  | **48.4** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/upernet_crossformer_s_ade20k.py)   | *TBD* |
 | Swin-S        | 160K   | 81.0M | 1038.0G | 47.6  | 49.5 | - | - |
+| **CrossFormer-B** | **160K**   | **83.6M** | **1089.7G** | **49.7**  | **50.6** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/upernet_crossformer_b_ade20k.py)   | *TBD* |
 | Swin-B        | 160K   | 121.0M| 1088.0G | 48.1  | 49.7 | - | - |
-| CrossFormer-S | 160K   | 62.3M | 979.5G  | 47.6  | 48.4 | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/upernet_crossformer_s_ade20k.py)   | *TBD* |
-| CrossFormer-B | 160K   | 83.6M | 1089.7G | 49.7  | 50.6 | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/upernet_crossformer_b_ade20k.py)   | *TBD* |
-| CrossFormer-L | 160K   | 125.5M| 1257.8G | **50.4** | **51.4** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/upernet_crossformer_l_ade20k.py)   | *TBD* |
+| **CrossFormer-L** | **160K**   | **125.5M**| **1257.8G** | **50.4** | **51.4** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/upernet_crossformer_l_ade20k.py)   | *TBD* |
 
 **Notes:**
 - *MS IOU* means *IOU* with multi-scale testing.
 - Models are trained on ADE20K. Backbones are initialized with weights pre-trained on ImageNet-1K.
 - For Semantic FPN, models are trained for 80K iterations with batch size 16. For UperNet, models are trained for 160K iterations.
 - More detailed training settings can be found in corresponding configs.
+- More results can be seen in our paper.
 
 
 
