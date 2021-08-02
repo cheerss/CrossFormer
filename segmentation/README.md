@@ -18,8 +18,8 @@ pip3 install mmcv-full==1.2.7 mmsegmentation==0.12.0
 3. Prepare pretrained CrossFormer models
 ```python
 import torch
-ckpt = torch.load("pretrain-xxx.pth") ## load classification checkpoint
-torch.save(ckpt["model"], "segm-pretrain-xxx.pth") ## only model weights are needed
+ckpt = torch.load("crossformer-s.pth") ## load classification checkpoint
+torch.save(ckpt["model"], "backbone-corssformer-s.pth") ## only model weights are needed
 ```
 
 
@@ -34,7 +34,7 @@ torch.save(ckpt["model"], "segm-pretrain-xxx.pth") ## only model weights are nee
 ./dist_train.sh <CONFIG_FILE> <GPUS> <PRETRAIN_MODEL>
 
 ## e.g. train fpn_crossformer_b model with 8 GPUs
-./dist_train.sh configs/fpn_crossformer_b_ade20k_40k.py 8 path/to/segm-pretrain-xxx.pth
+./dist_train.sh configs/fpn_crossformer_b_ade20k_40k.py 8 path/to/backbone-corssformer-s.pth
 ```
 
 3. Inference
