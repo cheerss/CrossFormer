@@ -56,11 +56,11 @@ torch.save(ckpt["model"], "backbone-corssformer-s.pth") ## only model weights ar
 | Backbone      | Iterations | Params | FLOPs | IOU | config| Models|
 | ------------- | :-----: | ------:| -----:| ------:| :-----| :---------------|
 | PVT-M         | 80K    | 48.0M | 219.0G | 41.6  | - | - |
-| **CrossFormer-S** | **80K**    | **34.3M** | **209.8G** | **46.4**  | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_s_ade20k_40k.py)   | [Google Drive](https://drive.google.com/file/d/1I-zpGG5rvkTtrTUnOF8Fx11yeb6pXGYi/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/14K3gJS3UcnEZNwhTWHdsFg), key: sn5h |
+| **CrossFormer-S** | **80K**    | **34.3M** | **209.8G** | **46.4**  | [config](./configs/fpn_crossformer_s_ade20k_40k.py)   | [Google Drive](https://drive.google.com/file/d/1I-zpGG5rvkTtrTUnOF8Fx11yeb6pXGYi/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/14K3gJS3UcnEZNwhTWHdsFg), key: sn5h |
 | PVT-L         | 80K    | 65.1M | 283.0G | 42.1  | - | - |
 | Swin-S        | 80K    | 53.2M | 274.0G | 45.2  | - | - |
-| **CrossFormer-B** | **80K**    | **55.6M** | **320.1G** | **48.0**  | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_b_ade20k_40k.py)   | [Google Drive](https://drive.google.com/file/d/1EjAnRc8Sau0un1ymqDVhFebHPeBIjukK/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1eCYENrLZsxjAQKW3eAQeUA), key: joi5 |
-| **CrossFormer-L** | **80K**    | **95.4M** | **482.7G** | **49.1** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_l_ade20k_40k.py)   | [Google Drive](https://drive.google.com/file/d/12WS9lX9yR5skxdt3N2HE3b2EaDSMwUMY/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/150b8-v1StaMHACIaM0hZVA), key: 6v5d |
+| **CrossFormer-B** | **80K**    | **55.6M** | **320.1G** | **48.0**  | [config](./configs/fpn_crossformer_b_ade20k_40k.py)   | [Google Drive](https://drive.google.com/file/d/1EjAnRc8Sau0un1ymqDVhFebHPeBIjukK/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1eCYENrLZsxjAQKW3eAQeUA), key: joi5 |
+| **CrossFormer-L** | **80K**    | **95.4M** | **482.7G** | **49.1** | [config](./configs/fpn_crossformer_l_ade20k_40k.py)   | [Google Drive](https://drive.google.com/file/d/12WS9lX9yR5skxdt3N2HE3b2EaDSMwUMY/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/150b8-v1StaMHACIaM0hZVA), key: 6v5d |
 
 ### UPerNet
 
@@ -68,11 +68,11 @@ torch.save(ckpt["model"], "backbone-corssformer-s.pth") ## only model weights ar
 | ------------- | :--------: | ------:| -----:| ------:| ------:| :-----| :---------------|
 | ResNet-101    | 160K   | 86.0M | 1029.0G | 44.9  | - | - | - |
 | Swin-T        | 160K   | 60.0M | 945.0G  | 44.5  | 45.8 | - | - |
-| **CrossFormer-S** | **160K**   | **62.3M** | **979.5G**  | **47.6**  | **48.4** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/upernet_crossformer_s_ade20k.py)   | [Google Drive](https://drive.google.com/file/d/1VKu4D6oxYdO1VVILLMhOQy8oCxKGH5gx/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1MLcAOiJ22AFKUa6_t1psOQ), key: wesb |
+| **CrossFormer-S** | **160K**   | **62.3M** | **979.5G**  | **47.6**  | **48.4** | [config](./configs/upernet_crossformer_s_ade20k.py)   | [Google Drive](https://drive.google.com/file/d/1VKu4D6oxYdO1VVILLMhOQy8oCxKGH5gx/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1MLcAOiJ22AFKUa6_t1psOQ), key: wesb |
 | Swin-S        | 160K   | 81.0M | 1038.0G | 47.6  | 49.5 | - | - |
-| **CrossFormer-B** | **160K**   | **83.6M** | **1089.7G** | **49.7**  | **50.6** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/upernet_crossformer_b_ade20k.py)   | [Google Drive](https://drive.google.com/file/d/1B8VTNeidrzlfsOkQUKgmX4m_UfCIm58i/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1311pBQluwJGiVdWY1WE16Q), key: j061 |
+| **CrossFormer-B** | **160K**   | **83.6M** | **1089.7G** | **49.7**  | **50.6** | [config](./configs/upernet_crossformer_b_ade20k.py)   | [Google Drive](https://drive.google.com/file/d/1B8VTNeidrzlfsOkQUKgmX4m_UfCIm58i/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1311pBQluwJGiVdWY1WE16Q), key: j061 |
 | Swin-B        | 160K   | 121.0M| 1088.0G | 48.1  | 49.7 | - | - |
-| **CrossFormer-L** | **160K**   | **125.5M**| **1257.8G** | **50.4** | **51.4** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/upernet_crossformer_l_ade20k.py)   | [Google Drive](https://drive.google.com/file/d/1I9ph5MeCwlTF2PNCkIYMFXYsdywp9nU1/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1Yu8QB42hcbKNGQ46Wx_NaQ), key: 17ks |
+| **CrossFormer-L** | **160K**   | **125.5M**| **1257.8G** | **50.4** | **51.4** | [config](./configs/upernet_crossformer_l_ade20k.py)   | [Google Drive](https://drive.google.com/file/d/1I9ph5MeCwlTF2PNCkIYMFXYsdywp9nU1/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1Yu8QB42hcbKNGQ46Wx_NaQ), key: 17ks |
 
 **Notes:**
 - *MS IOU* means *IOU* with multi-scale testing.
