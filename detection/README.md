@@ -20,7 +20,7 @@ pip3 install mmcv-full==1.2.7 mmdet==2.8.0
 ```python
 import torch
 ckpt = torch.load("crossformer-s.pth") ## load classification checkpoint
-torch.save(ckpt["model"], "backbone-corssformer-s.pth") ## only model weights are needed
+torch.save(ckpt["model"], "backbone-crossformer-s.pth") ## only model weights are needed
 ```
 
 
@@ -36,7 +36,7 @@ torch.save(ckpt["model"], "backbone-corssformer-s.pth") ## only model weights ar
 ./dist_train.sh <CONFIG_FILE> <GPUS> <PRETRAIN_MODEL>
 
 ## e.g. train model with 8 GPUs
-./dist_train.sh configs/retinanet_crossformer_s_fpn_1x_coco.py 8 path/to/backbone-corssformer-s.pth
+./dist_train.sh configs/retinanet_crossformer_s_fpn_1x_coco.py 8 path/to/backbone-crossformer-s.pth
 ```
 
 3. Inference
