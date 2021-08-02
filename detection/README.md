@@ -57,7 +57,7 @@ torch.save(ckpt["model"], "pretrain-corssformer-s.pth") ## only model weights ar
 
 ### RetinaNet
 
-| Backbone      | Lr schd | Params | FLOPs | box AP | config| Pretrained Model|
+| Backbone      | Lr schd | Params | FLOPs | box AP | config| Models |
 | ------------- | :-----: | ------:| -----:| ------:| -----:| :---------------|
 | ResNet-101    | 1x      | 56.7M  | 315.0G   | 38.5     | - | - |
 | PVT-M         | 1x      | 53.9M  | -        | 41.9     | - | - |
@@ -70,7 +70,7 @@ torch.save(ckpt["model"], "pretrain-corssformer-s.pth") ## only model weights ar
 
 ### Mask R-CNN
 
-| Backbone      | Lr schd | Params | FLOPs  | box AP | mask AP | config| Pretrained Model|
+| Backbone      | Lr schd | Params | FLOPs  | box AP | mask AP | config| Models |
 | ------------- | :-----: |-------:| ------:| ------:| -------:| -----:| ---------------:|
 | ResNet-101    | 1x      | 63.2M  | 336.0G | 40.4   | 36.4 | - | - |
 | PVT-M         | 1x      | 63.9M  | -      | 42.0   | 39.0 | - | - |
