@@ -16,11 +16,11 @@ pip3 install mmcv-full==1.2.7 mmdet==2.8.0
 
 2. Prepare COCO 2017 dataset according to guidelines in [MMDetection v2.8.0](https://github.com/open-mmlab/mmdetection/tree/v2.8.0)
 
-3. Prepare pretrained CrossFormer models
+3. Prepare CrossFormer models pre-trained on ImageNet-1K
 ```python
 import torch
-ckpt = torch.load("pretrain-xxx.pth") ## load classification checkpoint
-torch.save(ckpt["model"], "det-pretrain-xxx.pth") ## only model weights are needed
+ckpt = torch.load("crossformer-s.pth") ## load classification checkpoint
+torch.save(ckpt["model"], "pretrain-corssformer-s.pth") ## only model weights are needed
 ```
 
 
@@ -36,7 +36,7 @@ torch.save(ckpt["model"], "det-pretrain-xxx.pth") ## only model weights are need
 ./dist_train.sh <CONFIG_FILE> <GPUS> <PRETRAIN_MODEL>
 
 ## e.g. train model with 8 GPUs
-./dist_train.sh configs/retinanet_crossformer_s_fpn_1x_coco.py 8 path/to/det-pretrain-xxx.pth
+./dist_train.sh configs/retinanet_crossformer_s_fpn_1x_coco.py 8 path/to/pretrain-corssformer-s.pth
 ```
 
 3. Inference
@@ -58,14 +58,14 @@ torch.save(ckpt["model"], "det-pretrain-xxx.pth") ## only model weights are need
 ### RetinaNet
 
 | Backbone      | Lr schd | Params | FLOPs | box AP | config| Pretrained Model|
-| ------------- | :-----: | ------:| -----:| ------:| -----:| ---------------:|
+| ------------- | :-----: | ------:| -----:| ------:| -----:| :---------------|
 | ResNet-101    | 1x      | 56.7M  | 315.0G   | 38.5     | - | - |
 | PVT-M         | 1x      | 53.9M  | -        | 41.9     | - | - |
 | PVT-L         | 1x      | 71.1M  | 345.0G   | 42.6     | - | - |
 | Swin-T        | 1x      | 38.5M  | 245.0G   | 41.5     | - | - |
 | Swin-B        | 1x      | 98.4M  | 477.0G   | 44.7     | - | - |
-| CrossFormer-S | 1x      | 40.8M  | 282.0G   | 44.4     | [config](https://github.com/cheerss/CrossFormer/blob/main/detection/configs/retinanet_crossformer_s_fpn_1x_coco.py)   | *TBD* |
-| CrossFormer-B | 1x      | 62.1M  | 389.0G   | **46.2** | [config](https://github.com/cheerss/CrossFormer/blob/main/detection/configs/retinanet_crossformer_b_fpn_1x_coco.py)   | *TBD* |
+| CrossFormer-S | 1x      | 40.8M  | 282.0G   | 44.4     | [config](./configs/retinanet_crossformer_s_fpn_1x_coco.py)   | [Google Drive](https://drive.google.com/file/d/1OEEottS4fYGVZcPZG6WuBlKMK0tZLPZW/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1Ckrk3Z1uA65ve43_hL3ZFg), key: ift3 |
+| CrossFormer-B | 1x      | 62.1M  | 389.0G   | **46.2** | [config](./configs/retinanet_crossformer_b_fpn_1x_coco.py)   | [Google Drive](https://drive.google.com/file/d/1TOuLLf_S4Ixo6COvaHQAocACR4NKKnGz/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1ESE7i1JpVjxZmB5ZTgXA5w), key: hsd5 |
 
 
 ### Mask R-CNN
@@ -77,8 +77,8 @@ torch.save(ckpt["model"], "det-pretrain-xxx.pth") ## only model weights are need
 | PVT-L         | 1x      | 81.0M  | 364.0G | 42.9   | 39.5 | - | - |
 | Swin-T        | 1x      | 47.8M  | 264.0G | 42.2   | 39.1 | - | - |
 | Swin-B        | 1x      | 107.2M | 496.0G | 45.5   | 41.3 | - | - |
-| CrossFormer-S | 1x      | 50.2M  | 301.0G | 45.4   | 41.4 | [config](https://github.com/cheerss/CrossFormer/blob/main/detection/configs/mask_rcnn_crossformer_s_fpn_1x_coco.py) | *TBD* |
-| CrossFormer-B | 1x      | 71.5M  | 407.9G | **47.2** | **42.7** | [config](https://github.com/cheerss/CrossFormer/blob/main/detection/configs/mask_rcnn_crossformer_b_fpn_1x_coco.py) | *TBD* |
+| CrossFormer-S | 1x      | 50.2M  | 301.0G | 45.4   | 41.4 | [config](./configs/mask_rcnn_crossformer_s_fpn_1x_coco.py) | *TBD* |
+| CrossFormer-B | 1x      | 71.5M  | 407.9G | **47.2** | **42.7** | [config](./configs/mask_rcnn_crossformer_b_fpn_1x_coco.py) | *TBD* |
 
 
 **Notes:**
