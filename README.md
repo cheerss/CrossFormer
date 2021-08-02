@@ -63,7 +63,7 @@ Training scripts for semantic segmentation: [segmentation/README.md](./segmentat
 
 Models trained on ImageNet-1K and evaluated on its validation set. The input image size is 224 x 224.
 
-| Architectures | Params | FLOPs | Accuracy | Pretrained Model |
+| Architectures | Params | FLOPs | Accuracy | Models |
 | ------------- | ------: | -----: | --------: | :---------------- |
 | `ResNet-50` | `25.6M` | `4.1G` | `76.2%` |      `-`        |
 | `RegNetY-8G` | `39.0M` | `8.0G` | `81.7%` |     `-`        |
