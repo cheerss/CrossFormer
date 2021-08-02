@@ -56,9 +56,9 @@ torch.save(ckpt["model"], "backbone-corssformer-s.pth") ## only model weights ar
 | Backbone      | Iterations | Params | FLOPs | IOU | config| Models|
 | ------------- | :-----: | ------:| -----:| ------:| :-----| :---------------|
 | PVT-M         | 80K    | 48.0M | 219.0G | 41.6  | - | - |
+| **CrossFormer-S** | **80K**    | **34.3M** | **209.8G** | **46.4**  | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_s_ade20k_40k.py)   | [Google Drive](https://drive.google.com/file/d/1I-zpGG5rvkTtrTUnOF8Fx11yeb6pXGYi/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/14K3gJS3UcnEZNwhTWHdsFg), key: sn5h |
 | PVT-L         | 80K    | 65.1M | 283.0G | 42.1  | - | - |
 | Swin-S        | 80K    | 53.2M | 274.0G | 45.2  | - | - |
-| **CrossFormer-S** | **80K**    | **34.3M** | **209.8G** | **46.4**  | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_s_ade20k_40k.py)   | [Google Drive](https://drive.google.com/file/d/1I-zpGG5rvkTtrTUnOF8Fx11yeb6pXGYi/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/14K3gJS3UcnEZNwhTWHdsFg), key: sn5h |
 | **CrossFormer-B** | **80K**    | **55.6M** | **320.1G** | **48.0**  | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_b_ade20k_40k.py)   | [Google Drive](https://drive.google.com/file/d/1EjAnRc8Sau0un1ymqDVhFebHPeBIjukK/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1eCYENrLZsxjAQKW3eAQeUA), key: joi5 |
 | **CrossFormer-L** | **80K**    | **95.4M** | **482.7G** | **49.1** | [config](https://github.com/cheerss/CrossFormer/blob/main/segmentation/configs/fpn_crossformer_l_ade20k_40k.py)   | [Google Drive](https://drive.google.com/file/d/12WS9lX9yR5skxdt3N2HE3b2EaDSMwUMY/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/150b8-v1StaMHACIaM0hZVA), key: 6v5d |
 
