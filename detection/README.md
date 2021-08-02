@@ -71,14 +71,14 @@ torch.save(ckpt["model"], "pretrain-corssformer-s.pth") ## only model weights ar
 ### Mask R-CNN
 
 | Backbone      | Lr schd | Params | FLOPs  | box AP | mask AP | config| Models |
-| ------------- | :-----: |-------:| ------:| ------:| -------:| -----:| ---------------:|
+| ------------- | :-----: |-------:| ------:| ------:| -------:| :-----| :---------------|
 | ResNet-101    | 1x      | 63.2M  | 336.0G | 40.4   | 36.4 | - | - |
 | PVT-M         | 1x      | 63.9M  | -      | 42.0   | 39.0 | - | - |
 | Swin-T        | 1x      | 47.8M  | 264.0G | 42.2   | 39.1 | - | - |
-| **CrossFormer-S** | **1x**      | **50.2M**  | **301.0G** | **45.4**   | **41.4** | [config](./configs/mask_rcnn_crossformer_s_fpn_1x_coco.py) | *TBD* |
+| **CrossFormer-S** | **1x**      | **50.2M**  | **301.0G** | **45.4**   | **41.4** | [config](./configs/mask_rcnn_crossformer_s_fpn_1x_coco.py) | [Google Drive](https://drive.google.com/file/d/1qgO3-wnsJQw9Nj304AOj-TjVyadPPtvf/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1ytk95p-rjqI3UNEHaYqKKA), key: 4omu |
 | PVT-L         | 1x      | 81.0M  | 364.0G | 42.9   | 39.5 | - | - |
 | Swin-B        | 1x      | 107.2M | 496.0G | 45.5   | 41.3 | - | - |
-| **CrossFormer-B** | **1x**      | **71.5M**  | **407.9G** | **47.2** | **42.7** | [config](./configs/mask_rcnn_crossformer_b_fpn_1x_coco.py) | *TBD* |
+| **CrossFormer-B** | **1x**      | **71.5M**  | **407.9G** | **47.2** | **42.7** | [config](./configs/mask_rcnn_crossformer_b_fpn_1x_coco.py) | [Google Drive](https://drive.google.com/file/d/1urkCa8Inss9CL1G1OgM4tWR5PSf6Ofn4/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1N_EGRLBuIXgQh6J0Oyh00g), key: kjf4 |
 
 
 **Notes:**
