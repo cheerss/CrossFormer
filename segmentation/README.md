@@ -1,7 +1,7 @@
 # CrossFormer Segmentation
 Our semantic segmentation code is developed on top of [MMSegmentation v0.12.0](https://github.com/open-mmlab/mmsegmentation/tree/v0.12.0).
 
-For more details please refer to our paper [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention]().
+For more details please refer to our paper [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention](https://arxiv.org/pdf/2108.00154.pdf).
 
 
 
@@ -91,7 +91,7 @@ torch.save(ckpt["model"], "backbone-corssformer-s.pth") ## only model weights ar
   title     = {CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention},
   author    = {Wenxiao Wang and Lu Yao and Long Chen and Deng Cai and Xiaofei He and Wei Liu},
   journal   = {CoRR},
-  volume    = {abs/21xx.xxxxx},
+  volume    = {abs/2108.00154},
   year      = {2021},
 }
 ```
