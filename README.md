@@ -31,6 +31,7 @@ pip3 install numpy scipy Pillow pyyaml torch==1.7.0 torchvision==0.8.1 timm==0.3
 
 ## Getting Started
 
+### Training
 ```bash
 ## There should be two directories under the path_to_imagenet: train and validation
 
@@ -49,6 +50,13 @@ python -u -m torch.distributed.launch --nproc_per_node 8 main.py --cfg configs/b
 ## CrossFormer-L
 python -u -m torch.distributed.launch --nproc_per_node 8 main.py --cfg configs/large_patch4_group7_224.yaml \
 --batch-size 128 --data-path path_to_imagenet --output ./output
+```
+
+### Testing
+```bash
+## Take CrossFormer-T as an example
+python -u -m torch.distributed.launch --nproc_per_node 1 main.py --cfg configs/tiny_patch4_group7_224.yaml \
+--batch-size 128 --data-path path_to_imagenet --eval --resume path_to_crossformer-t.pth
 ```
 
 Training scripts for objection detection: [detection/README.md](./detection/README.md).
