@@ -5,7 +5,7 @@ This repository is the code for our paper [CrossFormer: A Versatile Vision Trans
 
 ## Introduction
 
-Existing vision transformers fail to build attention among objects/features of different scales (cross-scale attention), while such ability is very important to visual tasks. **CrossFormer** is a versatile vision transformer which solves this problem. Its core designs contain **C**ross-scale **E**mbedidng **L**ayer (**CEL**), **L**ong-**S**hort **D**istance **A**ttention (**L/SDA**), which work together to enable cross-scale attention.
+Existing vision transformers fail to build attention among objects/features of different scales (cross-scale attention), while such ability is very important to visual tasks. **CrossFormer** is a versatile vision transformer which solves this problem. Its core designs contain **C**ross-scale **E**mbedding **L**ayer (**CEL**), **L**ong-**S**hort **D**istance **A**ttention (**L/SDA**), which work together to enable cross-scale attention.
 
 **CEL** blends every input embedding with multiple-scale features. **L/SDA** split all embeddings into several groups, and the self-attention is only computed within each group (embeddings with the same color border belong to the same group.).
 
