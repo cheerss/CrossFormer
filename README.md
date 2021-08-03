@@ -21,7 +21,7 @@ Now, experiments are done on four representative visual tasks, *i.e.*, image cla
 
 1. Libraries (Python3.6-based)
 ```bash
-pip3 install numpy Pillow pyyaml torch==1.7.0 torchvision==0.8.1 timm==0.3.2
+pip3 install numpy scipy Pillow pyyaml torch==1.7.0 torchvision==0.8.1 timm==0.3.2
 ```
 2. Dataset: ImageNet
 
