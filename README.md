@@ -1,6 +1,6 @@
 # CrossFormer
 
-This repository is the code for our paper [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention]().
+This repository is the code for our paper [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention](https://arxiv.org/pdf/2108.00154.pdf).
 
 
 ## Introduction
@@ -72,7 +72,7 @@ Models trained on ImageNet-1K and evaluated on its validation set. The input ima
 | CrossFormer-B | 52.0M  | 9.2G  | 83.4%    | *TBD*             |
 | CrossFormer-L | 92.0M  | 16.1G | **84.0%**    | *TBD*             |
 
-More results compared with other vision transformers can be seen in the [paper]().
+More results compared with other vision transformers can be seen in the [paper](https://arxiv.org/pdf/2108.00154.pdf).
 
 ### Objection Detection & Instance Segmentation
 
@@ -116,7 +116,7 @@ More results and pretrained models for semantic segmentation: [segmentation/READ
   title     = {CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention},
   author    = {Wenxiao Wang and Lu Yao and Long Chen and Deng Cai and Xiaofei He and Wei Liu},
   journal   = {CoRR},
-  volume    = {abs/21xx.xxxxx},
+  volume    = {abs/2108.00154},
   year      = {2021},
 }
 ```
