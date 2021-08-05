@@ -2,6 +2,11 @@
 
 This repository is the code for our paper [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention](https://arxiv.org/pdf/2108.00154.pdf).
 
+## Updated
+
+- [ ] Mask-RCNN detection/instance segmentation results with 3x training schedule.
+- [ ] Cascade Mask-RCNN detection/instance segmentation results with 3x training schedule.
+
 
 ## Introduction
 
