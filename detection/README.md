@@ -92,6 +92,20 @@ torch.save(ckpt["model"], "backbone-crossformer-s.pth") ## only model weights ar
 
 
 
+## FLOPs and Params Calculation
+use `get_flops.py` to calculate FLOPs and #parameters of the specified model.
+```bash
+python get_flops.py <CONFIG_FILE> --shape <height> <width>
+
+## e.g. get FLOPs and #params of retinanet_crossformer_s with input image size [1280, 800]
+python get_flops.py configs/retinanet_crossformer_s_fpn_1x_coco.py --shape 1280 800
+```
+
+**Notes:** Default input image size is [1280, 800]. For calculation with different input image size, you need to change `<height> <width>` in the above command and change `img_size` in `crossformer_factory.py` accordingly at the same time.
+
+
+
+
 ## Citing Us
 
 ```

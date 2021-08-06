@@ -41,10 +41,10 @@ def get_flops(model, input_shape):
 
     backbone = model.backbone
     backbone_total_flops, excluded_flops = backbone.flops()
-    print('---------')
-    print('backbone total GFLOPs by us: ', backbone_total_flops / 1e9)
-    print('excluded GFLOPs by mmcv: ', excluded_flops / 1e9)
-    print('---------')
+    # print('---------')
+    # print('backbone total GFLOPs calculated by us: ', backbone_total_flops / 1e9)
+    # print('excluded GFLOPs by mmcv: ', excluded_flops / 1e9)
+    # print('---------')
     flops += excluded_flops
 
     return flops_to_string(flops), params_to_string(params)
