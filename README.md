@@ -7,6 +7,7 @@ This repository is the code for our paper [CrossFormer: A Versatile Vision Trans
 - [ ] Mask-RCNN detection/instance segmentation results with 3x training schedule.
 - [ ] Cascade Mask-RCNN detection/instance segmentation results with 3x training schedule.
 - [x] The usage of `get_flops.py` in detection and segmentation.
+- [x] Upload the pretrained CrossFormer-L.
 
 
 ## Introduction
@@ -84,7 +85,7 @@ Models trained on ImageNet-1K and evaluated on its validation set. The input ima
 | **CrossFormer-T** | **27.8M**  | **2.9G**  | **81.5%**    | [Google Drive](https://drive.google.com/file/d/1YSkU9enn-ITyrbxLH13zNcBYvWSEidfq/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1M45YXZgVvp6Ew9DO8UhdlA), key: nkju |
 | **CrossFormer-S** | **30.7M**  | **4.9G**  | **82.5%**    | [Google Drive](https://drive.google.com/file/d/1RAkigsgr33va0RZ85S2Shs2BhXYcS6U8/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1Xf4MXfb_soCnJFBeNDmoQQ), key: fgqj |
 | **CrossFormer-B** | **52.0M**  | **9.2G**  | **83.4%**    | [Google Drive](https://drive.google.com/file/d/1bK8biVCi17nz_nkt7rBfio_kywUpllSU/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1f5dH__UGDXb-HoOPHT5p0A), key: 7md9 |
-| **CrossFormer-L** | **92.0M**  | **16.1G** | **84.0%**    | *TBD*             |
+| **CrossFormer-L** | **92.0M**  | **16.1G** | **84.0%**    | [Google Drive](https://drive.google.com/file/d/1zRWByVW_KIZ87NgaBkDIm60DAsGJErdG/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1YJLeHy_cxLBrZLklQBCA_A), key: cc89|
 
 More results compared with other vision transformers can be seen in the [paper](https://arxiv.org/pdf/2108.00154.pdf).
 
