@@ -139,13 +139,12 @@ def main(args, config):
         if dist.get_rank() == 0 and epoch == config.TRAIN.EPOCHS - 1:
             save_checkpoint(config, epoch, model_without_ddp, max_accuracy, optimizer, lr_scheduler, logger)
 
-        if not args.pretrain or epoch % 10 == 0 or epoch == config.TRAIN.EPOCHS - 1:
-            acc1, acc5, loss = validate(config, data_loader_val, model)
-            logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
-            if dist.get_rank() == 0 and acc1 >= max_accuracy: ## save best
-                save_checkpoint(config, epoch, model_without_ddp, max_accuracy, optimizer, lr_scheduler, logger, best=True)
-            max_accuracy = max(max_accuracy, acc1)
-            logger.info(f'Max accuracy: {max_accuracy:.2f}%')
+        acc1, acc5, loss = validate(config, data_loader_val, model)
+        logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
+        if dist.get_rank() == 0 and acc1 >= max_accuracy: ## save best
+            save_checkpoint(config, epoch, model_without_ddp, max_accuracy, optimizer, lr_scheduler, logger, best=True)
+        max_accuracy = max(max_accuracy, acc1)
+        logger.info(f'Max accuracy: {max_accuracy:.2f}%')
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
