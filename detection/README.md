@@ -79,6 +79,13 @@ torch.save(ckpt["model"], "backbone-crossformer-s.pth") ## only model weights ar
 | PVT-L         | 1x      | 81.0M  | 364.0G | 42.9   | 39.5 | - | - |
 | Swin-B        | 1x      | 107.2M | 496.0G | 45.5   | 41.3 | - | - |
 | **CrossFormer-B** | **1x**      | **71.5M**  | **407.9G** | **47.2** | **42.7** | [config](./configs/mask_rcnn_crossformer_b_fpn_1x_coco.py) | [Google Drive](https://drive.google.com/file/d/1urkCa8Inss9CL1G1OgM4tWR5PSf6Ofn4/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1N_EGRLBuIXgQh6J0Oyh00g), key: kjf4 |
+| **CrossFormer-S** | **3x**  | **50.2M**  | **291.1G** | **48.7**   | **43.9** | - | - |
+| **CrossFormer-B** | **3x**  | **71.5M**  | **398.1G** | **49.8**   | **44.5** | - | - |
+
+### Cascade Mask R-CNN
+| Backbone      | Lr schd | Params | FLOPs  | box AP | mask AP | config| Models |
+| ------------- | :-----: |-------:| ------:| ------:| -------:| :-----| :---------------|
+| **CrossFormer-S** | **3x**  | **88.0M**  | **769.7G** | **52.2**   | **45.2** | - | - |
 
 
 **Notes:**
