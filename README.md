@@ -101,6 +101,9 @@ Models trained on COCO 2017. Backbones are initialized with weights pre-trained 
 | ResNet-101 | Mask-RCNN | 1x | 63.2M | 336.0G | 40.4 | 36.4 |
 | **CrossFormer-S** | Mask-RCNN        | 1x                   | **50.2M**  | **301.0G** | **45.4**   | **41.4** |
 | **CrossFormer-B** | Mask-RCNN         | 1x                   | **71.5M**  | **407.9G** | **47.2**   | **42.7** |
+| **CrossFormer-S** | Mask-RCNN        | 3x                   | **50.2M**  | **291.1G** | **48.7**   | **43.9** |
+| **CrossFormer-B** | Mask-RCNN         | 3x                   | **71.5M**  | **398.1G** | **49.8**   | **44.5** |
+| **CrossFormer-S** | Cascade-Mask-RCNN | 3x                   | **88.0M**  | **769.7G** | **52.2**   | **45.2** |
 
 More results and pretrained models for objection detection: [detection/README.md](./detection/README.md).
 
