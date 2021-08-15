@@ -4,8 +4,8 @@ This repository is the code for our paper [CrossFormer: A Versatile Vision Trans
 
 ## Updates
 
-- [ ] Mask-RCNN detection/instance segmentation results with 3x training schedule.
-- [ ] Cascade Mask-RCNN detection/instance segmentation results with 3x training schedule.
+- [x] Mask-RCNN detection/instance segmentation results with 3x training schedule.
+- [x] Cascade Mask-RCNN detection/instance segmentation results with 3x training schedule.
 - [x] The usage of `get_flops.py` in detection and segmentation.
 - [x] Upload the pretrained CrossFormer-L.
 
