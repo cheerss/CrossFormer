@@ -15,7 +15,7 @@ from models.crossformer_backbone import CrossFormer
 class CrossFormer_S(CrossFormer):
     def __init__(self, **kwargs):
         super(CrossFormer_S, self).__init__(
-            img_size=[1024,1024],
+            img_size=[1024,1024], # This is only used to compute the FLOPs under the give image size
             patch_size=[4, 8, 16, 32],
             in_chans=3,
             num_classes=1000,
