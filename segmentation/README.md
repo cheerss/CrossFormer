@@ -101,11 +101,10 @@ python get_flops.py configs/fpn_crossformer_b_ade20k_40k.py --shape 1024 1024
 ## Citing Us
 
 ```
-@article{crossformer2021,
-  title     = {CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention},
-  author    = {Wenxiao Wang and Lu Yao and Long Chen and Deng Cai and Xiaofei He and Wei Liu},
-  journal   = {CoRR},
-  volume    = {abs/2108.00154},
-  year      = {2021},
+@article{wang2021crossformer,
+  title={CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention},
+  author={Wang, Wenxiao and Yao, Lu and Chen, Long and Cai, Deng and He, Xiaofei and Liu, Wei},
+  journal={arXiv preprint arXiv:2108.00154},
+  year={2021}
 }
 ```
