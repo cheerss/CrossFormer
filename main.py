@@ -202,19 +202,16 @@ def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mix
                         grad_norm = torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), config.TRAIN.CLIP_GRAD)
                     else:
                         grad_norm = get_grad_norm(amp.master_params(optimizer))
+                    optimizer.step()
                 elif config.AMP_OPT_LEVEL == "native":
                     loss_scaler(loss, optimizer, clip_grad=config.TRAIN.CLIP_GRAD, parameters=model.parameters())
-                    grad_norm = 0
-                    for p in model.parameters():
-                        param_norm = p.grad.data.norm(2)
-                        grad_norm += param_norm.item() ** 2
-                    grad_norm = grad_norm ** 0.5
+                    grad_norm = get_grad_norm(model.parameters())
                 else:
                     loss.backward()
                     if config.TRAIN.CLIP_GRAD:
-                        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), config.TRAIN.CLIP_GRAD)
-                    else:
-                        grad_norm = get_grad_norm(model.parameters())
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), config.TRAIN.CLIP_GRAD)
+                    grad_norm = get_grad_norm(model.parameters())
+                    optimizer.step()
                 lr_scheduler.step_update(epoch * num_steps + idx)
 
         torch.cuda.synchronize()
