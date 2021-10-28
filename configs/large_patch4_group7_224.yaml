@@ -1,6 +1,6 @@
 MODEL:
   TYPE: cross-scale
-  NAME: cros_base_patch4_group7_224
+  NAME: cros_large_patch4_group7_224
   DROP_PATH_RATE: 0.5
   CROS:
     EMBED_DIM: 128
