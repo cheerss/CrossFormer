@@ -1,6 +1,7 @@
 # CrossFormer
 
-This repository is the code for our paper [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention](https://arxiv.org/pdf/2108.00154.pdf).
+This repository is the code for our paper [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention](https://arxiv.org/pdf/2108.00154.pdf).  
+Authors: [Wenxiao Wang](https://www.wenxiaowang.com), Lu Yao, [Long Chen](https://zjuchenlong.github.io/), Binbin Lin, [Deng Cai](http://www.cad.zju.edu.cn/home/dengcai/), [Xiaofei He](http://www.cad.zju.edu.cn/home/xiaofeihe/), Wei Liu
 
 ## Updates
 
