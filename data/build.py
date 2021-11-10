@@ -77,11 +77,10 @@ def build_dataset(is_train, config):
             dataset = datasets.ImageFolder(root, transform=transform)
         nb_classes = 1000
     elif config.DATA.DATASET == 'ImageNet': ## tfrecord
-        root = os.path.join(config.DATA.DATA_PATH, 'train_tf' if is_train else 'val_tf')
         if is_train:
-            records = [os.path.join(root, "train_raw_image_lable_0.0-1281167.20201227112604.tfrecord")]
+            records = [os.path.join(config.DATA.DATA_PATH, "train.tfrecord")]
         else:
-            records = [os.path.join(root, "val_raw_image_lable_0.0-50000.20201227113711.tfrecord")]
+            records = [os.path.join(config.DATA.DATA_PATH, "validation.tfrecord")]
         dataset = ImageTFRecordDataSet(records, transform)
         nb_classes = 1000
     elif config.DATA.DATASET == 'ImageNet22K': ## tfrecord
