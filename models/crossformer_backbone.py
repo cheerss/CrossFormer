@@ -111,7 +111,7 @@ class Attention(nn.Module):
         q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
         q = q * self.scale
-        attn = (q @ k.transpose(-2, -1)) # (num_windows*B, N, N), N = Gh*Gw
+        attn = (q @ k.transpose(-2, -1)) # (B, self.num_heads, N, N), N = H*W
 
         if self.position_bias:
             # generate mother-set
