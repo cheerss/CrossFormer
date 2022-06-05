@@ -134,11 +134,12 @@ More results and pretrained models for semantic segmentation: [segmentation/READ
 ## Citing Us
 
 ```
-@article{wang2021crossformer,
-  title={CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention},
-  author={Wang, Wenxiao and Yao, Lu and Chen, Long and Cai, Deng and He, Xiaofei and Liu, Wei},
-  journal={arXiv preprint arXiv:2108.00154},
-  year={2021}
+@inproceedings{wang2021crossformer,
+  title = {CrossFormer: A Versatile Vision Transformer Hinging on Cross-scale Attention},
+  author = {Wang, Wenxiao and Yao, Lu and Chen, Long and Lin, Binbin and Cai, Deng and He, Xiaofei and Liu, Wei},
+  booktitle = {International Conference on Learning Representations, {ICLR}},
+  url = {https://openreview.net/forum?id=_PHymLIxuI},
+  year = {2022}
 }
 ```
 
