@@ -106,6 +106,13 @@ def main():
         # use config filename as default work_dir if cfg.work_dir is None
         cfg.work_dir = osp.join('./work_dirs',
                                 osp.splitext(osp.basename(args.config))[0])
+    
+    # seperate the position for log and weight
+    work_dir_log = osp.join('./det-output', 'log',    cfg.work_dir)
+    work_dir_wgt = osp.join('./det-output', 'weight', cfg.work_dir.split('/')[-2])
+    cfg.checkpoint_config.out_dir = osp.abspath(work_dir_wgt)
+    cfg.work_dir = work_dir_log
+    
     if args.resume_from is not None:
         cfg.resume_from = args.resume_from
     if args.gpu_ids is not None:
@@ -124,7 +131,9 @@ def main():
         cfg.gpu_ids = range(world_size)
 
     # create work_dir
-    mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
+    # mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
+    mmcv.mkdir_or_exist(osp.abspath(work_dir_log))
+    mmcv.mkdir_or_exist(osp.abspath(work_dir_wgt))
     # dump config
     cfg.dump(osp.join(cfg.work_dir, osp.basename(args.config)))
     # init the logger before other steps
@@ -147,6 +156,8 @@ def main():
     logger.info(f'Distributed training: {distributed}')
     logger.info(f'Config:\n{cfg.pretty_text}')
 
+    cfg.device = 'cuda'
+
     # set random seeds
     if args.seed is not None:
         logger.info(f'Set random seed to {args.seed}, '
@@ -157,7 +168,14 @@ def main():
     meta['exp_name'] = osp.basename(args.config)
 
     model = build_detector(
-        cfg.model, train_cfg=cfg.train_cfg, test_cfg=cfg.test_cfg)
+        cfg.model,
+        train_cfg=cfg.get('train_cfg'),
+        test_cfg=cfg.get('test_cfg'))
+
+    # may need to be commented
+    model.init_weights()
+
+    logger.info(model)
 
     datasets = [build_dataset(cfg.data.train)]
     if len(cfg.workflow) == 2:

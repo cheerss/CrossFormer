@@ -9,3 +9,5 @@ MODEL:
     GROUP_SIZE: [ 7, 7, 7, 7 ]
     PATCH_SIZE: [4, 8, 16, 32]
     MERGE_SIZE: [[2, 4], [2,4], [2, 4]]
+    GROUP_TYPE: constant
+    USE_ACL: False

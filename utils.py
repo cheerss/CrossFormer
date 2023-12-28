@@ -38,8 +38,24 @@ def load_checkpoint(config, model, optimizer, lr_scheduler, logger):
     torch.cuda.empty_cache()
     return max_accuracy
 
+def load_checkpoint_only(config, model, optimizer, lr_scheduler, logger):
+    logger.info(f"==============> Resuming from {config.MODEL.RESUME}....................")
+    if config.MODEL.RESUME.startswith('https'):
+        checkpoint = torch.hub.load_state_dict_from_url(
+            config.MODEL.RESUME, map_location='cpu', check_hash=True)
+    else:
+        checkpoint = torch.load(config.MODEL.RESUME, map_location='cpu')
+    msg = model.load_state_dict(checkpoint['model'], strict=False)
+    logger.info(msg)
+    max_accuracy = 0.0
+    if 'max_accuracy' in checkpoint:
+        max_accuracy = checkpoint['max_accuracy']
+    del checkpoint
+    torch.cuda.empty_cache()
+    return max_accuracy
 
-def save_checkpoint(config, epoch, model, max_accuracy, optimizer, lr_scheduler, logger, best=False):
+
+def save_checkpoint(config, epoch, model, max_accuracy, optimizer, lr_scheduler, logger, best=False, last=False):
     save_state = {'model': model.state_dict(),
                   'optimizer': optimizer.state_dict(),
                   'lr_scheduler': lr_scheduler.state_dict(),
@@ -49,9 +65,11 @@ def save_checkpoint(config, epoch, model, max_accuracy, optimizer, lr_scheduler,
     if config.AMP_OPT_LEVEL != "O0" and config.AMP_OPT_LEVEL != "native":
         save_state['amp'] = amp.state_dict()
     
-    save_path = os.path.join(config.OUTPUT, f'ckpt_epoch_{epoch}.pth')
+    save_path = os.path.join(config.WEIGHT_OUTPUT, f'ckpt_epoch_{epoch}.pth')
     if best:
-        save_path = os.path.join(config.OUTPUT, 'best.pth')
+        save_path = os.path.join(config.WEIGHT_OUTPUT, 'best.pth')
+    if last:
+        save_path = os.path.join(config.WEIGHT_OUTPUT, 'last.pth')
     logger.info(f"{save_path} saving......")
     torch.save(save_state, save_path)
     logger.info(f"{save_path} saved !!!")

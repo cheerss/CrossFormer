@@ -1,17 +1,18 @@
 _base_ = [
-    '../configs/_base_/models/upernet_crossformer.py', 
-    '../configs/_base_/datasets/ade20k_swin.py',
-    '../configs/_base_/default_runtime.py', 
-    '../configs/_base_/schedules/schedule_160k.py'
+    '../_base_/models/upernet_crossformer.py', 
+    '../_base_/datasets/ade20k_swin.py',
+    '../_base_/default_runtime.py', 
+    '../_base_/schedules/schedule_160k.py'
 ]
 model = dict(
-    pretrained=None,
-    backbone=dict(type='CrossFormer_B', group_size=[7, 7, 7, 7], crs_interval=[8, 4, 2, 1]),
+    backbone=dict(
+        type='CrossFormer_S', group_size=[7, 7, 7, 7], crs_interval=[8, 4, 2, 1], adaptive_interval=False,
+        init_cfg=dict(type='Pretrained', checkpoint='./backbone-crossformer-s.pth')),
     decode_head=dict(
-        in_channels=[96, 192, 384, 768]
+        in_channels=[96,192,384,768],
     ),
     auxiliary_head=dict(
-        in_channels=384 # 3rd in_channels of decode_head
+        in_channels=256 # 3rd in_channels of decode_head
     ))
 
 # AdamW optimizer, no weight decay for position embedding & layer norm in backbone
@@ -23,4 +24,4 @@ lr_config = dict(_delete_=True, policy='poly',
                  warmup_iters=1500,
                  warmup_ratio=1e-6,
                  power=1.0, min_lr=0.0, by_epoch=False)
-
+device = 'cuda'

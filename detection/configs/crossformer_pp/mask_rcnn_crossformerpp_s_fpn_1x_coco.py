@@ -1,17 +1,19 @@
 _base_ = [
-    '../configs/_base_/models/mask_rcnn_r50_fpn.py',
-    '../configs/_base_/datasets/coco_instance.py',
-    '../configs/_base_/default_runtime.py'
+    '../_base_/models/mask_rcnn_r50_fpn.py',
+    '../_base_/datasets/coco_instance.py',
+    '../_base_/default_runtime.py'
 ]
 model = dict(
     pretrained=None,
     backbone=dict(
-        type='CrossFormer_B',
+        type='CrossFormer_S2',
         group_size=[7, 7, 7, 7],
-        crs_interval=[8, 4, 2, 1]),
+        crs_interval=[8, 4, 2, 1],
+        adaptive_interval=False,
+        init_cfg=dict(type='Pretrained', checkpoint='./backbone-crossformer-s.pth')),
     neck=dict(
         type='FPN',
-        in_channels=[96,192,384,768],
+        in_channels=[64, 128, 256, 512],
         out_channels=256,
         num_outs=5))
 # optimizer
@@ -24,4 +26,5 @@ lr_config = dict(
     warmup_iters=500,
     warmup_ratio=0.001,
     step=[8, 11])
-total_epochs = 12
+runner = dict(type='EpochBasedRunner', max_epochs=12)
+device = 'cuda'

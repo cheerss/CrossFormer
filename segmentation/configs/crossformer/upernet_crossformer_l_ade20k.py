@@ -1,12 +1,13 @@
 _base_ = [
-    '../configs/_base_/models/upernet_crossformer.py', 
-    '../configs/_base_/datasets/ade20k_swin.py',
-    '../configs/_base_/default_runtime.py', 
-    '../configs/_base_/schedules/schedule_160k.py'
+    '../_base_/models/upernet_crossformer.py', 
+    '../_base_/datasets/ade20k_swin.py',
+    '../_base_/default_runtime.py', 
+    '../_base_/schedules/schedule_160k.py'
 ]
 model = dict(
     pretrained=None,
-    backbone=dict(type='CrossFormer_L', group_size=[7, 7, 7, 7], crs_interval=[8, 4, 2, 1]),
+    backbone=dict(type='CrossFormer_L', group_size=[7, 7, 7, 7], crs_interval=[8, 4, 2, 1],
+        init_cfg=dict(type='Pretrained', checkpoint='./backbone-crossformer-s.pth')),
     decode_head=dict(
         in_channels=[128, 256, 512, 1024]
     ),

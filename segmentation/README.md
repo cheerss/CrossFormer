@@ -1,5 +1,6 @@
-# CrossFormer Segmentation
-Our semantic segmentation code is developed on top of [MMSegmentation v0.12.0](https://github.com/open-mmlab/mmsegmentation/tree/v0.12.0).
+# CrossFormer++ Segmentation
+
+Our semantic segmentation code is developed on top of [MMSegmentation v0.29.1](https://github.com/open-mmlab/mmsegmentation/tree/v0.29.1).
 
 For more details please refer to our paper [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention](https://arxiv.org/pdf/2108.00154.pdf).
 
@@ -10,7 +11,9 @@ For more details please refer to our paper [CrossFormer: A Versatile Vision Tran
 
 1. Libraries (Python3.6-based)
 ```bash
-pip3 install mmcv-full==1.2.7 mmsegmentation==0.12.0
+pip install mmcv-full==1.6.2 -f https://download.openmmlab.com/mmcv/dist/cu113/torch1.12/index.html
+pip install yapf==0.40.1
+pip install mmsegmentation==0.29.1
 ```
 
 2. Prepare ADE20K dataset according to guidelines in [MMSegmentation v0.12.0](https://github.com/open-mmlab/mmsegmentation/tree/v0.12.0)
@@ -34,7 +37,7 @@ torch.save(ckpt["model"], "backbone-corssformer-s.pth") ## only model weights ar
 ./dist_train.sh <CONFIG_FILE> <GPUS> <PRETRAIN_MODEL>
 
 ## e.g. train fpn_crossformer_b model with 8 GPUs
-./dist_train.sh configs/fpn_crossformer_b_ade20k_40k.py 8 path/to/backbone-corssformer-s.pth
+./dist_train.sh configs/crossformer/fpn_crossformer_b_ade20k_40k.py 8 path/to/backbone-corssformer-s.pth
 ```
 
 3. Inference
@@ -42,7 +45,7 @@ torch.save(ckpt["model"], "backbone-corssformer-s.pth") ## only model weights ar
 ./dist_test.sh <CONFIG_FILE> <GPUS> <DET_CHECKPOINT_FILE>
 
 ## e.g. evaluate semantic segmentation model by mIoU
-./dist_test.sh configs/fpn_crossformer_b_ade20k_40k.py 8 path/to/ckpt
+./dist_test.sh configs/crossformer/fpn_crossformer_b_ade20k_40k.py 8 path/to/ckpt
 ```
 **Notes:** We use single-scale testing by default, you can enable multi-scale testing or flip testing manually by following the instructions in `configs/_base_/datasets/ade20k[_swin].py`.
 
@@ -90,7 +93,7 @@ use `get_flops.py` to calculate FLOPs and #parameters of the specified model.
 python get_flops.py <CONFIG_FILE> --shape <height> <width>
 
 ## e.g. get FLOPs and #params of fpn_crossformer_b with input image size [1024, 1024]
-python get_flops.py configs/fpn_crossformer_b_ade20k_40k.py --shape 1024 1024
+python get_flops.py configs/crossformer/fpn_crossformer_b_ade20k_40k.py --shape 1024 1024
 ```
 
 **Notes:** Default input image size is [1024, 1024]. For calculation with different input image size, you need to change `<height> <width>` in the above command and change `img_size` in `crossformer_factory.py` accordingly at the same time.
@@ -107,5 +110,12 @@ python get_flops.py configs/fpn_crossformer_b_ade20k_40k.py --shape 1024 1024
   booktitle = {International Conference on Learning Representations, {ICLR}},
   url = {https://openreview.net/forum?id=_PHymLIxuI},
   year = {2022}
+}
+
+@article{wang2023crossformer++,
+  title={Crossformer++: A versatile vision transformer hinging on cross-scale attention},
+  author={Wang, Wenxiao and Chen, Wei and Qiu, Qibo and Chen, Long and Wu, Boxi and Lin, Binbin and He, Xiaofei and Liu, Wei},
+  journal={arXiv preprint arXiv:2303.06908},
+  year={2023}
 }
 ```
