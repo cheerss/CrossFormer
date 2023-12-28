@@ -2,16 +2,15 @@
 
 This repository is the code for our papers:
 
+- [CrossFormer++: A Versatile Vision Transformer Hinging on Cross-scale Attention](https://arxiv.org/abs/2303.06908) (**IEEE TPAMI Acceptance**).
+
+  - Authors: [Wenxiao Wang](https://www.wenxiaowang.com), Wei Chen, Qibo Qiu, [Long Chen](https://zjuchenlong.github.io/), Boxi Wu, Binbin Lin, [Xiaofei He](http://www.cad.zju.edu.cn/home/xiaofeihe/), Wei Liu
+ 
 - [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention](https://arxiv.org/pdf/2108.00154.pdf) (**ICLR 2022 Acceptance**).
 
   - Authors: [Wenxiao Wang](https://www.wenxiaowang.com), Lu Yao, [Long Chen](https://zjuchenlong.github.io/), Binbin Lin, [Deng Cai](http://www.cad.zju.edu.cn/home/dengcai/), [Xiaofei He](http://www.cad.zju.edu.cn/home/xiaofeihe/), Wei Liu
 
-- [CrossFormer++: A Versatile Vision Transformer Hinging on Cross-scale Attention](https://arxiv.org/abs/2303.06908) (**IEEE TPAMI Acceptance**).
-
-  - Authors: [Wenxiao Wang](https://www.wenxiaowang.com), Wei Chen, Qibo Qiu, [Long Chen](https://zjuchenlong.github.io/), Boxi Wu, Binbin Lin, [Xiaofei He](http://www.cad.zju.edu.cn/home/xiaofeihe/), Wei Liu
-
-
-
+The [crossformer](https://github.com/cheerss/CrossFormer/tree/crossformer) branch retains the old version code with old dependencies.
 
 ## Updates
 
