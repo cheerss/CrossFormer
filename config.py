@@ -30,6 +30,13 @@ _C.DATA.CACHE_MODE = 'part'
 _C.DATA.PIN_MEMORY = True
 # Number of data loading threads
 _C.DATA.NUM_WORKERS = 8
+# Whether to use token labeling and settings
+_C.DATA.TOKEN_LABEL = False
+_C.DATA.TOKEN_LABEL_SIZE = 7
+_C.DATA.PREFETCH = False
+_C.DATA.MIX_GROUNDTRUTH = False
+_C.DATA.CLS_WEIGHT = 1.0
+_C.DATA.DENSE_WEIGHT = 0.5
 
 # -----------------------------------------------------------------------------
 # Model settings
@@ -37,6 +44,8 @@ _C.DATA.NUM_WORKERS = 8
 _C.MODEL = CN()
 # Model type
 _C.MODEL.TYPE = 'cross-scale'
+_C.MODEL.IMPL_TYPE = ''
+_C.MODEL.CONV_BLOCKS = ''
 # Model name
 _C.MODEL.NAME = 'tiny_patch4_group7_224'
 # Checkpoint to resume, could be overwritten by command line argument
@@ -50,6 +59,8 @@ _C.MODEL.DROP_RATE = 0.0
 _C.MODEL.DROP_PATH_RATE = 0.1
 # Label Smoothing
 _C.MODEL.LABEL_SMOOTHING = 0.1
+_C.MODEL.RETURN_DENSE = True
+_C.MODEL.MIX_TOKEN = True
 
 # CrossFormer parameters
 _C.MODEL.CROS = CN()
@@ -60,11 +71,26 @@ _C.MODEL.CROS.EMBED_DIM = 48
 _C.MODEL.CROS.DEPTHS = [2, 2, 6, 2]
 _C.MODEL.CROS.NUM_HEADS = [3, 6, 12, 24]
 _C.MODEL.CROS.GROUP_SIZE = [7, 7, 7, 7]
-_C.MODEL.CROS.MLP_RATIO = 4.
+_C.MODEL.CROS.INTERVAL = [8, 4, 2, 1]
+_C.MODEL.CROS.MLP_RATIO = [4., 4., 4., 4.]
 _C.MODEL.CROS.QKV_BIAS = True
 _C.MODEL.CROS.QK_SCALE = None
 _C.MODEL.CROS.APE = False
 _C.MODEL.CROS.PATCH_NORM = True
+
+# CrossFormer++ parameters
+_C.MODEL.CROS.GROUP_TYPE = 'constant'
+_C.MODEL.CROS.USE_ACL = True
+_C.MODEL.CROS.USE_CPE = False
+_C.MODEL.CROS.PAD_TYPE = 0
+_C.MODEL.CROS.NO_MASK = False
+_C.MODEL.CROS.ADAPT_INTER = False
+
+# Loss settings for supervision on intermediate feature maps
+_C.MODEL.LOSS = CN()
+_C.MODEL.LOSS.ALPHA2 = 0.1
+_C.MODEL.LOSS.ALPHA3 = 0.1
+_C.MODEL.LOSS.ALPHA4 = 0.25 # impl_type == 15
 
 # -----------------------------------------------------------------------------
 # Training settings
@@ -148,12 +174,15 @@ _C.TEST.CROP = True
 _C.AMP_OPT_LEVEL = ''
 # Path to output folder, overwritten by command line argument
 _C.OUTPUT = ''
+# Divide log and model into different directory
+_C.LOG_OUTPUT    = ''
+_C.WEIGHT_OUTPUT = ''
 # Tag of experiment, overwritten by command line argument
 _C.TAG = 'default'
 # Frequency to save checkpoint
 _C.SAVE_FREQ = 1000
 # Frequency to logging info
-_C.PRINT_FREQ = 10
+_C.PRINT_FREQ = 50
 # Fixed random seed
 _C.SEED = 0
 # Perform evaluation only, overwritten by command line argument
@@ -213,18 +242,31 @@ def update_config(config, args):
         config.DATA.NUM_WORKERS = args.num_workers
     if args.throughput:
         config.THROUGHPUT_MODE = True
+    if args.embed_dim:
+        config.MODEL.CROS.EMBED_DIM = args.embed_dim
 
     # if args.patch_size:
     #     config.MODEL.CROS.PATCH_SIZE = args.patch_size
 
-    config.MODEL.CROS.MLP_RATIO = args.mlp_ratio
     # config.MODEL.MERGE_SIZE_AFTER = [args.merge_size_after1, args.merge_size_after2, args.merge_size_after3, []]
     config.DATA.DATASET = args.data_set
+    config.DATA.IMG_SIZE = args.img_size
     config.TRAIN.WARMUP_EPOCHS = args.warmup_epochs
+    config.TRAIN.EPOCHS = args.epochs
+    config.TRAIN.WEIGHT_DECAY = args.weight_decay
+    config.TRAIN.BASE_LR = args.lr
+    config.TRAIN.WARMUP_LR = args.warmup_lr
+    config.TRAIN.MIN_LR = args.min_lr
+    config.MODEL.IMPL_TYPE = args.impl_type
     # set local rank for distributed training
-    config.LOCAL_RANK = args.local_rank
+    # config.LOCAL_RANK = args.local_rank
+    config.LOCAL_RANK = int(os.environ["LOCAL_RANK"])
     # output folder
-    config.OUTPUT = os.path.join(config.OUTPUT, config.MODEL.NAME, config.TAG)
+    # config.OUTPUT = os.path.join(config.OUTPUT, config.MODEL.NAME, config.TAG)
+    # config.LOG_OUTPUT    = os.path.join(config.OUTPUT, 'log',    config.TAG, config.MODEL.NAME)
+    # config.WEIGHT_OUTPUT = os.path.join(config.OUTPUT, 'weight', config.TAG, config.MODEL.NAME)
+    config.LOG_OUTPUT    = os.path.join(config.OUTPUT, 'log',    config.TAG)
+    config.WEIGHT_OUTPUT = os.path.join(config.OUTPUT, 'weight', config.TAG)
 
     config.freeze()
 

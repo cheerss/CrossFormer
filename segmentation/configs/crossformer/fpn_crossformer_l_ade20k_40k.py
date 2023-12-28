@@ -1,13 +1,14 @@
 _base_ = [
-    '../configs/_base_/models/fpn_r50.py',
-    '../configs/_base_/datasets/ade20k.py',
-    '../configs/_base_/default_runtime.py'
+    '../_base_/models/fpn_r50.py',
+    '../_base_/datasets/ade20k.py',
+    '../_base_/default_runtime.py'
 ]
 # model settings
 model = dict(
     pretrained=None,
-    backbone=dict(type='CrossFormer_B', group_size=[7, 7, 7, 7], crs_interval=[8, 4, 2, 1]),
-    neck=dict(in_channels=[96,192,384,768])
+    backbone=dict(type='CrossFormer_L', group_size=[14, 14, 7, 7], crs_interval=[16, 8, 2, 1],
+        init_cfg=dict(type='Pretrained', checkpoint='./backbone-crossformer-s.pth')),
+    neck=dict(in_channels=[128,256,512,1024])
 )
 
 

@@ -1,0 +1,14 @@
+MODEL:
+  TYPE: cross-scale
+  NAME: cros_pp_large_patch4_group_const_224
+  DROP_PATH_RATE: 0.5
+  CROS:
+    EMBED_DIM: 128
+    DEPTHS: [ 2, 2, 18, 2 ]
+    NUM_HEADS: [ 4, 8, 16, 32 ]
+    GROUP_SIZE: [ 4, 4,14, 7 ]
+    PATCH_SIZE: [4, 8, 16, 32]
+    INTERVAL: [4, 2, 1, 1]
+    MERGE_SIZE: [[2, 4], [2,4], [2, 4]]
+    GROUP_TYPE: constant
+    USE_ACL: True

@@ -1,3 +1,5 @@
+from collections import OrderedDict
+import numpy as np
 import math
 import torch
 import torch.nn as nn
@@ -6,10 +8,15 @@ import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from mmdet.utils import get_root_logger
 from mmcv.runner import load_checkpoint
+from mmcv.cnn import build_norm_layer, constant_init, trunc_normal_init
+from mmcv.cnn.bricks.transformer import FFN, build_dropout
+from mmcv.cnn.utils.weight_init import trunc_normal_
+from mmcv.runner import BaseModule, ModuleList, _load_checkpoint
 
 NEG_INF = -1000000
 
 class Mlp(nn.Module):
+    r"""2-layer MLP"""
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
         out_features = out_features or in_features
@@ -27,8 +34,11 @@ class Mlp(nn.Module):
         x = self.drop(x)
         return x
 
-
 class DynamicPosBias(nn.Module):
+    r"""DPB module
+    
+    Use a MLP to predict position bias used in attention.
+    """
     def __init__(self, dim, num_heads, residual):
         super().__init__()
         self.residual = residual
@@ -52,7 +62,7 @@ class DynamicPosBias(nn.Module):
         )
     def forward(self, biases):
         if self.residual:
-            pos = self.pos_proj(biases) # 2Gh-1 * 2Gw-1, heads
+            pos = self.pos_proj(biases) # 2Wh-1 * 2Ww-1, heads
             pos = pos + self.pos1(pos)
             pos = pos + self.pos2(pos)
             pos = self.pos3(pos)
@@ -69,7 +79,6 @@ class DynamicPosBias(nn.Module):
 
 class Attention(nn.Module):
     r""" Multi-head self attention module with relative position bias.
-
     Args:
         dim (int): Number of input channels.
         num_heads (int): Number of attention heads.
@@ -111,7 +120,7 @@ class Attention(nn.Module):
         q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
         q = q * self.scale
-        attn = (q @ k.transpose(-2, -1)) # (B, self.num_heads, N, N), N = H*W
+        attn = (q @ k.transpose(-2, -1).contiguous()) # (num_windows*B, N, N), N = Gh*Gw
 
         if self.position_bias:
             # generate mother-set
@@ -149,7 +158,7 @@ class Attention(nn.Module):
 
         attn = self.attn_drop(attn)
 
-        x = (attn @ v).transpose(1, 2).reshape(B_, N, C)
+        x = (attn @ v).transpose(1, 2).contiguous().reshape(B_, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
@@ -183,7 +192,8 @@ class CrossFormerBlock(nn.Module):
         dim (int): Number of input channels.
         input_resolution (tuple[int]): Input resulotion.
         num_heads (int): Number of attention heads.
-        group_size (int): Window size.
+        group_size (int): Group size.
+        interval (int): Interval for LDA.
         lsda_flag (int): use SDA or LDA, 0 for SDA and 1 for LDA.
         mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
         qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
@@ -193,11 +203,15 @@ class CrossFormerBlock(nn.Module):
         drop_path (float, optional): Stochastic depth rate. Default: 0.0
         act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
+        num_patch_size
+        impl_type (str): 
+        use_extra_conv (bool): Extra convolution layer. Default: True
     """
 
     def __init__(self, dim, input_resolution, num_heads, group_size=7, interval=8, lsda_flag=0,
                  mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0., drop_path=0.,
-                 act_layer=nn.GELU, norm_layer=nn.LayerNorm, num_patch_size=1):
+                 act_layer=nn.GELU, norm_layer=nn.LayerNorm, num_patch_size=1, 
+                 pad_type=0, use_extra_conv=True, use_cpe=False, no_mask=False, adaptive_interval=False):
         super().__init__()
         self.dim = dim
         self.input_resolution = input_resolution
@@ -207,34 +221,61 @@ class CrossFormerBlock(nn.Module):
         self.lsda_flag = lsda_flag
         self.mlp_ratio = mlp_ratio
         self.num_patch_size = num_patch_size
+        self.pad_type = pad_type
+        self.use_extra_conv = use_extra_conv
+        self.use_cpe = use_cpe
+        self.adaptive_interval = adaptive_interval
 
         self.norm1 = norm_layer(dim)
 
         self.attn = Attention(
             dim, num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop,
-            position_bias=True)
+            position_bias=(not use_cpe))
+
+        if self.use_cpe:
+            self.cpe = nn.Conv2d(in_channels=input_resolution[0], out_channels=input_resolution[0], kernel_size=3, padding=1, groups=input_resolution[0])
+            self.norm_cpe = norm_layer(dim)
+
+        # if adaptive_interval:
+        #     self.interval = int(np.ceil(self.input_resolution[0] / self.group_size))
+
+        if self.use_extra_conv:
+            self.ex_kernel = [3, 3]
+            padding = (self.ex_kernel[0] - 1) // 2
+            self.ex_conv = nn.Conv2d(dim, dim, self.ex_kernel, padding=padding, groups=dim)
+            self.ex_ln = norm_layer(dim)
 
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
-        self.norm2 = norm_layer(dim)
+        self.norm2 = norm_layer(dim, elementwise_affine=True)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
     def forward(self, x, H, W):
+        # H, W = self.input_resolution
         B, L, C = x.shape
         assert L == H * W, "input feature has wrong size %d, %d, %d" % (L, H, W)
 
         if min(H, W) <= self.group_size:
             # if window size is larger than input resolution, we don't partition windows
             self.lsda_flag = 0
-            self.group_size = min(H, W)
+            # group_size = min(H, W)
+            group_size = max(H, W)
+        else:
+            group_size = self.group_size
+
+        if self.adaptive_interval:
+            self.interval = math.ceil(max(H, W) / group_size)
 
         shortcut = x
         x = self.norm1(x)
         x = x.view(B, H, W, C)
 
+        if self.use_cpe:
+            x = x + self.norm_cpe(self.cpe(x))
+
         # padding
-        size_div = self.interval if self.lsda_flag == 1 else self.group_size
+        size_div = self.interval * group_size if self.lsda_flag == 1 else group_size
         pad_l = pad_t = 0
         pad_r = (size_div - W % size_div) % size_div
         pad_b = (size_div - H % size_div) % size_div
@@ -249,7 +290,7 @@ class CrossFormerBlock(nn.Module):
 
         # group embeddings and generate attn_mask
         if self.lsda_flag == 0: # SDA
-            G = Gh = Gw = self.group_size
+            G = Gh = Gw = group_size
             x = x.reshape(B, Hp // G, G, Wp // G, G, C).permute(0, 1, 3, 2, 4, 5).contiguous()
             x = x.reshape(B * Hp * Wp // G**2, G**2, C)
             nG = Hp * Wp // G**2
@@ -262,13 +303,14 @@ class CrossFormerBlock(nn.Module):
             else:
                 attn_mask = None
         else: # LDA
-            I, Gh, Gw = self.interval, Hp // self.interval, Wp // self.interval
-            x = x.reshape(B, Gh, I, Gw, I, C).permute(0, 2, 4, 1, 3, 5).contiguous()
-            x = x.reshape(B * I * I, Gh * Gw, C)
-            nG = I ** 2
+            I, Gh, Gw = self.interval, group_size, group_size
+            Rh, Rw = Hp // (Gh * I), Wp // (Gw * I)
+            x = x.reshape(B, Rh, Gh, I, Rw, Gw, I, C).permute(0, 1, 4, 3, 6, 2, 5, 7).contiguous()
+            x = x.reshape(B * Rh * Rw * I * I, Gh * Gw, C)
+            nG = I ** 2 * Rh * Rw
             # attn_mask
             if pad_r > 0 or pad_b > 0:
-                mask = mask.reshape(1, Gh, I, Gw, I, 1).permute(0, 2, 4, 1, 3, 5).contiguous()
+                mask = mask.reshape(1, Rh, Gh, I, Rw, Gw, I, 1).permute(0, 1, 4, 3, 6, 2, 5, 7).contiguous()
                 mask = mask.reshape(nG, 1, Gh * Gw)
                 attn_mask = torch.zeros((nG, Gh * Gw, Gh * Gw), device=x.device)
                 attn_mask = attn_mask.masked_fill(mask < 0, NEG_INF)
@@ -282,7 +324,7 @@ class CrossFormerBlock(nn.Module):
         if self.lsda_flag == 0:
             x = x.reshape(B, Hp // G, Wp // G, G, G, C).permute(0, 1, 3, 2, 4, 5).contiguous() # B, Hp//G, G, Wp//G, G, C
         else:
-            x = x.reshape(B, I, I, Gh, Gw, C).permute(0, 3, 1, 4, 2, 5).contiguous() # B, Gh, I, Gw, I, C
+            x = x.reshape(B, Rh, Rw, I, I, Gh, Gw, C).permute(0, 1, 5, 3, 2, 6, 4, 7).contiguous() # B, Rh, Gh, I, Rw, Gw, I, C
         x = x.reshape(B, Hp, Wp, C)
 
         # remove padding
@@ -294,11 +336,20 @@ class CrossFormerBlock(nn.Module):
         x = shortcut + self.drop_path(x)
         x = x + self.drop_path(self.mlp(self.norm2(x)))
 
+        # cooling layer
+        if self.use_extra_conv:
+            x = x.view(B, H, W, C).permute(0, 3, 1, 2).contiguous()
+            x = self.ex_conv(x)
+            x = x.permute(0, 2, 3, 1).contiguous().view(B, H * W, C)
+            x = self.ex_ln(x)
+
         return x
+
 
     def extra_repr(self) -> str:
         return f"dim={self.dim}, input_resolution={self.input_resolution}, num_heads={self.num_heads}, " \
-               f"group_size={self.group_size}, lsda_flag={self.lsda_flag}, mlp_ratio={self.mlp_ratio}"
+               f"group_size={self.group_size}, lsda_flag={self.lsda_flag}, mlp_ratio={self.mlp_ratio}, " \
+               f"interval={self.interval}"
 
     def flops(self):
         flops = 0
@@ -306,11 +357,10 @@ class CrossFormerBlock(nn.Module):
         # norm1
         flops += self.dim * H * W
         # Attention
-        size_div = self.interval if self.lsda_flag == 1 else self.group_size
+        size_div = self.interval * self.group_size if self.lsda_flag == 1 else self.group_size
         Hp = math.ceil(H / size_div) * size_div
         Wp = math.ceil(W / size_div) * size_div
-        Gh = Hp / size_div if self.lsda_flag == 1 else self.group_size
-        Gw = Wp / size_div if self.lsda_flag == 1 else self.group_size
+        Gh = Gw = self.group_size
         nG = Hp * Wp / Gh / Gw
         attn_flops, attn_excluded_flops = self.attn.flops(Gh * Gw)
         flops += nG * attn_flops
@@ -389,7 +439,7 @@ class Stage(nn.Module):
         input_resolution (tuple[int]): Input resolution.
         depth (int): Number of blocks.
         num_heads (int): Number of attention heads.
-        group_size (int): Group size.
+        group_size (int): variable G in the paper, one group has GxG embeddings
         mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
         qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
@@ -398,16 +448,18 @@ class Stage(nn.Module):
         drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
         norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
         downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
-        use_checkpoint (bool): Ghether to use checkpointing to save memory. Default: False.
+        use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
     """
 
     def __init__(self, dim, input_resolution, depth, num_heads, group_size, interval,
                  mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0.,
                  drop_path=0., norm_layer=nn.LayerNorm, downsample=None, use_checkpoint=False,
-                 patch_size_end=[4], num_patch_size=None):
+                 patch_size_end=[4], num_patch_size=None, use_cpe=False, pad_type=0, 
+                 no_mask=False, adaptive_interval=False, use_acl=False):
 
         super().__init__()
         self.dim = dim
+        self.input_resolution = input_resolution
         self.depth = depth
         self.use_checkpoint = use_checkpoint
 
@@ -415,15 +467,25 @@ class Stage(nn.Module):
         self.blocks = nn.ModuleList()
         for i in range(depth):
             lsda_flag = 0 if (i % 2 == 0) else 1
+
+            # use extra convolution block every 3 blocks
+            use_extra_conv = ((i + 1) % 3 == 0) and (i < depth - 1) and use_acl
+
             self.blocks.append(CrossFormerBlock(dim=dim, input_resolution=input_resolution,
-                                 num_heads=num_heads, group_size=group_size, interval=interval,
+                                 num_heads=num_heads, group_size=group_size[i], interval=interval,
                                  lsda_flag=lsda_flag,
                                  mlp_ratio=mlp_ratio,
                                  qkv_bias=qkv_bias, qk_scale=qk_scale,
                                  drop=drop, attn_drop=attn_drop,
                                  drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
                                  norm_layer=norm_layer,
-                                 num_patch_size=num_patch_size))
+                                 num_patch_size=num_patch_size,
+                                 use_extra_conv=use_extra_conv,
+                                 use_cpe=use_cpe,
+                                 pad_type=pad_type,
+                                 no_mask=no_mask,
+                                 adaptive_interval=adaptive_interval
+                                 ))
 
         # patch merging layer
         if downsample is not None:
@@ -438,15 +500,16 @@ class Stage(nn.Module):
                 x = checkpoint.checkpoint(blk, x)
             else:
                 x = blk(x, H, W)
-
+        
         B, _, C = x.shape
         feat = x.view(B, H, W, C).permute(0, 3, 1, 2).contiguous()
+        
         if self.downsample is not None:
             x = self.downsample(x, H, W)
         return feat, x
 
     def extra_repr(self) -> str:
-        return f"dim={self.dim}, depth={self.depth}"
+        return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
 
     def flops(self):
         flops = 0
@@ -465,7 +528,7 @@ class PatchEmbed(nn.Module):
 
     Args:
         img_size (int): Image size.  Default: 224.
-        patch_size (int): Patch token size. Default: 4.
+        patch_size (int): Patch token size. Default: [4].
         in_chans (int): Number of input image channels. Default: 3.
         embed_dim (int): Number of linear projection output channels. Default: 96.
         norm_layer (nn.Module, optional): Normalization layer. Default: None
@@ -475,10 +538,11 @@ class PatchEmbed(nn.Module):
         super().__init__()
         img_size = to_2tuple(img_size)
         # patch_size = to_2tuple(patch_size)
-        patches_resolution = [img_size[0] // 4, img_size[1] // 4] # only for flops calculation
+        patches_resolution = [img_size[0] // patch_size[0], img_size[0] // patch_size[0]]
         self.img_size = img_size
         self.patch_size = patch_size
         self.patches_resolution = patches_resolution
+        self.num_patches = patches_resolution[0] * patches_resolution[1]
 
         self.in_chans = in_chans
         self.embed_dim = embed_dim
@@ -489,8 +553,8 @@ class PatchEmbed(nn.Module):
                 dim = embed_dim // 2 ** i
             else:
                 dim = embed_dim // 2 ** (i + 1)
-            stride = 4
-            padding = (ps - 4) // 2
+            stride = patch_size[0]
+            padding = (ps - patch_size[0]) // 2
             self.projs.append(nn.Conv2d(in_chans, dim, kernel_size=ps, stride=stride, padding=padding))
         if norm_layer is not None:
             self.norm = norm_layer(embed_dim)
@@ -499,9 +563,12 @@ class PatchEmbed(nn.Module):
 
     def forward(self, x):
         B, C, H, W = x.shape
+        # FIXME look at relaxing size constraints
+        # assert H == self.img_size[0] and W == self.img_size[1], \
+        #     f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
         xs = []
         for i in range(len(self.projs)):
-            tx = self.projs[i](x).flatten(2).transpose(1, 2)
+            tx = self.projs[i](x).flatten(2).transpose(1, 2).contiguous()
             xs.append(tx)  # B Ph*Pw C
         x = torch.cat(xs, dim=2)
         if self.norm is not None:
@@ -544,20 +611,27 @@ class CrossFormer(nn.Module):
         norm_layer (nn.Module): Normalization layer. Default: nn.LayerNorm.
         ape (bool): If True, add absolute position embedding to the patch embedding. Default: False
         patch_norm (bool): If True, add normalization after patch embedding. Default: True
-        use_checkpoint (bool): Ghether to use checkpointing to save memory. Default: False
+        use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
+        use_cpe (bool): Whether to use conditional positional encoding. Default: False
+        group_type (str): Strategy to change the group size in different stages. Default: constant
+        pad_type (bool): 0 to pad in one direction, otherwise 1. Default: 0
     """
 
     def __init__(self, img_size=224, patch_size=[4], in_chans=3, num_classes=1000,
                  embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24],
-                 group_size=7, crs_interval=[8, 4, 2, 1], mlp_ratio=4., qkv_bias=True, qk_scale=None,
+                 group_size=[7, 7, 7, 7], crs_interval=[8, 4, 2, 1], mlp_ratio=4., 
+                 qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
-                 norm_layer=nn.LayerNorm, patch_norm=True,
-                 use_checkpoint=False, merge_size=[[2], [2], [2]], **kwargs):
+                 norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
+                 use_checkpoint=False, merge_size=[[2], [2], [2]], use_cpe=False,
+                 group_type='constant', pad_type=0, no_mask=False,
+                 adaptive_interval=False, use_acl=False, init_cfg=None,  **kwargs):
         super().__init__()
 
         self.num_classes = num_classes
         self.num_layers = len(depths)
         self.embed_dim = embed_dim
+        self.ape = ape
         self.patch_norm = patch_norm
         self.num_features = int(embed_dim * 2 ** (self.num_layers - 1))
         self.mlp_ratio = mlp_ratio
@@ -566,13 +640,22 @@ class CrossFormer(nn.Module):
         self.patch_embed = PatchEmbed(
             img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
             norm_layer=norm_layer if self.patch_norm else None)
+        num_patches = self.patch_embed.num_patches
         patches_resolution = self.patch_embed.patches_resolution
-        self.patches_resolution = patches_resolution # [H//4, W//4] of original image size
+        self.patches_resolution = patches_resolution
+
+        # absolute position embedding
+        if self.ape:
+            self.absolute_pos_embed = nn.Parameter(torch.zeros(1, num_patches, embed_dim))
+            trunc_normal_(self.absolute_pos_embed, std=.02)
 
         self.pos_drop = nn.Dropout(p=drop_rate)
 
         # stochastic depth
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
+
+        # compute group size for each layer
+        group_size = self.compute_group_size(group_size, depths, patches_resolution, group_type)
 
         # build layers
         self.layers = nn.ModuleList()
@@ -596,29 +679,104 @@ class CrossFormer(nn.Module):
                                downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
                                use_checkpoint=use_checkpoint,
                                patch_size_end=patch_size_end,
-                               num_patch_size=num_patch_size)
+                               num_patch_size=num_patch_size,
+                               use_cpe=use_cpe,
+                               pad_type=pad_type,
+                               no_mask=no_mask,
+                               adaptive_interval=adaptive_interval,
+                               use_acl=use_acl)
             self.layers.append(layer)
+        
+        self.init_cfg = init_cfg
 
-        #  # classification
-        # self.norm = norm_layer(self.num_features)
-        # self.avgpool = nn.AdaptiveAvgPool1d(1)
-        # self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
+    def compute_group_size(self, group_size=[7, 7, 7, 7], depths=[2, 2, 6, 2], resolution=[56, 56], group_type='constant'):
+        r"""genenrate group size before running for crossformer and crossformer++
+        
+        output:
+            - rst_group_size: should be in the shape [[4], [4, 4], [14, 14, 14], [7, 7]] if group_size=[4, 4,14, 7], depths=[1, 2, 3, 2]
+        """
+        rst_group_size = []
 
-        self.apply(self._init_weights)
+        # compute linear fraction patch size
+        min_size = 4
+        total_depth = sum(depths)
+        step_size = (1 - min_size / resolution[0]) / total_depth
+        group_fraction = np.arange(min_size / resolution[0], 1.0, step_size)
+    
+        cnt = 0
+        for i_stage in range(len(depths)):
+            rst_group_size.append([])
+            cur_resolution = resolution[0] // 2 ** i_stage
+            for i_block in range(depths[i_stage]):
+                if group_type == 'constant':
+                    # constant group size for each stage
+                    rst_group_size[i_stage].append(group_size[i_stage])
+                elif group_type == 'linear':
+                    # the fraction of group size relative to input resolution grow in linear
+                    gz = cur_resolution * group_fraction[cnt]
+                    rst_group_size[i_stage].append(max(4, int(np.ceil(gz))))
+                elif group_type == 'linear_div':
+                    # if fraction > 1/2, let fraction = 1/2 if fraction < 3/4 else 1
+                    gz = cur_resolution * group_fraction[cnt]
+                    if gz > cur_resolution // 2:
+                        gz = cur_resolution if gz > cur_resolution * 3 / 4 or i_stage != 2 else cur_resolution // 2
+                    rst_group_size[i_stage].append(max(4, int(np.ceil(gz))))
+                elif group_type == 'alter':
+                    # if fraction > 1/2, let fraction alter between 1/2 and 1
+                    gz = cur_resolution * group_fraction[cnt]
+                    if gz > cur_resolution // 2:
+                        gz = cur_resolution if cnt % 2 != 0 or i_stage != 2 else cur_resolution // 2
+                    rst_group_size[i_stage].append(max(4, int(np.ceil(gz))))
+                elif group_type == '7_14':
+                    rst_group_size[i_stage].append(group_size[i_stage] if i_stage != 2 or i_block >= 4 else group_size[i_stage] // 2) 
+                cnt += 1
 
-    def init_weights(self, pretrained=None):
-        if isinstance(pretrained, str):
-            logger = get_root_logger()
-            load_checkpoint(self, pretrained, map_location='cpu', strict=False, logger=logger)
+        logger = get_root_logger()
+        logger.info("Group Size:")
+        logger.info(rst_group_size)
 
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=.02)
-            if isinstance(m, nn.Linear) and m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.LayerNorm):
-            nn.init.constant_(m.bias, 0)
-            nn.init.constant_(m.weight, 1.0)
+        return rst_group_size
+
+    def init_weights(self):
+        logger = get_root_logger()
+        if self.init_cfg is None:
+            logger.warn(f'No pre-trained weights for '
+                        f'{self.__class__.__name__}, '
+                        f'training start from scratch')
+            if self.use_abs_pos_embed:
+                trunc_normal_(self.absolute_pos_embed, std=0.02)
+            for m in self.modules():
+                if isinstance(m, nn.Linear):
+                    trunc_normal_init(m, std=.02, bias=0.)
+                elif isinstance(m, nn.LayerNorm):
+                    constant_init(m, 1.0)
+        else:
+            assert 'checkpoint' in self.init_cfg, f'Only support ' \
+                                                  f'specify `Pretrained` in ' \
+                                                  f'`init_cfg` in ' \
+                                                  f'{self.__class__.__name__} '
+            ckpt = _load_checkpoint(
+                self.init_cfg.checkpoint, logger=logger, map_location='cpu')
+            if 'state_dict' in ckpt:
+                _state_dict = ckpt['state_dict']
+            elif 'model' in ckpt:
+                _state_dict = ckpt['model']
+            else:
+                _state_dict = ckpt
+
+            state_dict = OrderedDict()
+            for k, v in _state_dict.items():
+                if k.startswith('backbone.'):
+                    state_dict[k[9:]] = v
+                else:
+                    state_dict[k] = v
+
+            # strip prefix of state_dict
+            if list(state_dict.keys())[0].startswith('module.'):
+                state_dict = {k[7:]: v for k, v in state_dict.items()}
+
+            # load state_dict
+            self.load_state_dict(state_dict, False)
 
     @torch.jit.ignore
     def no_weight_decay(self):
@@ -630,19 +788,16 @@ class CrossFormer(nn.Module):
 
     def forward(self, x):
         x, H, W = self.patch_embed(x)
+
+        if self.ape:
+            x = x + self.absolute_pos_embed
+        
         x = self.pos_drop(x)
 
         outs = []
         for i, layer in enumerate(self.layers):
-            feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
+            feat, x = layer(x, H // 4 // 2**i, W // 4 // 2**i)
             outs.append(feat)
-
-        # # classification
-        # x = self.norm(x)  # B L C
-        # x = self.avgpool(x.transpose(1, 2))  # B C 1
-        # x = torch.flatten(x, 1)
-        # x = self.head(x)
-        # return x
 
         return outs
 

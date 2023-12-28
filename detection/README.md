@@ -1,6 +1,6 @@
-# CrossFormer Detection
+# CrossFormer++ Detection
 
-Our detection code is developed on top of [MMDetection v2.8.0](https://github.com/open-mmlab/mmdetection/tree/v2.8.0).
+Our detection code is developed on top of [MMDetection v2.26.0](https://github.com/open-mmlab/mmdetection/tree/v2.26.0).
 
 For more details please refer to our paper [CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention](https://arxiv.org/pdf/2108.00154.pdf).
 
@@ -11,10 +11,12 @@ For more details please refer to our paper [CrossFormer: A Versatile Vision Tran
 
 1. Libraries (Python3.6-based)
 ```bash
-pip3 install mmcv-full==1.2.7 mmdet==2.8.0
+pip install mmcv-full==1.6.2 -f https://download.openmmlab.com/mmcv/dist/cu113/torch1.12/index.html
+pip install yapf==0.40.1
+pip install mmdet==2.26.0
 ```
 
-2. Prepare COCO 2017 dataset according to guidelines in [MMDetection v2.8.0](https://github.com/open-mmlab/mmdetection/tree/v2.8.0)
+2. Prepare COCO 2017 dataset according to guidelines in [MMDetection v2.26.0](https://github.com/open-mmlab/mmdetection/tree/v2.26.0)
 
 3. Prepare CrossFormer models pre-trained on ImageNet-1K
 ```python
@@ -36,7 +38,7 @@ torch.save(ckpt["model"], "backbone-crossformer-s.pth") ## only model weights ar
 ./dist_train.sh <CONFIG_FILE> <GPUS> <PRETRAIN_MODEL>
 
 ## e.g. train model with 8 GPUs
-./dist_train.sh configs/retinanet_crossformer_s_fpn_1x_coco.py 8 path/to/backbone-crossformer-s.pth
+./dist_train.sh configs/crossformer/retinanet_crossformer_s_fpn_1x_coco.py 8 path/to/backbone-crossformer-s.pth
 ```
 
 3. Inference
@@ -44,10 +46,10 @@ torch.save(ckpt["model"], "backbone-crossformer-s.pth") ## only model weights ar
 ./dist_test.sh <CONFIG_FILE> <GPUS> <DET_CHECKPOINT_FILE> --eval bbox [segm]
 
 ## e.g. evaluate detection model
-./dist_test.sh configs/retinanet_crossformer_s_fpn_1x_coco.py 8 path/to/ckpt --eval bbox
+./dist_test.sh configs/crossformer/retinanet_crossformer_s_fpn_1x_coco.py 8 path/to/ckpt --eval bbox
 
 ## e.g. evaluate instance segmentation model
-./dist_test.sh configs/mask_rcnn_crossformer_s_fpn_1x_coco.py 8 path/to/ckpt --eval bbox segm
+./dist_test.sh configs/crossformer/mask_rcnn_crossformer_s_fpn_1x_coco.py 8 path/to/ckpt --eval bbox segm
 ```
 
 
@@ -105,7 +107,7 @@ use `get_flops.py` to calculate FLOPs and #parameters of the specified model.
 python get_flops.py <CONFIG_FILE> --shape <height> <width>
 
 ## e.g. get FLOPs and #params of retinanet_crossformer_s with input image size [1280, 800]
-python get_flops.py configs/retinanet_crossformer_s_fpn_1x_coco.py --shape 1280 800
+python get_flops.py configs/crossformer/retinanet_crossformer_s_fpn_1x_coco.py --shape 1280 800
 ```
 
 **Notes:** Default input image size is [1280, 800]. For calculation with different input image size, you need to change `<height> <width>` in the above command and change `img_size` in `crossformer_factory.py` accordingly at the same time.
@@ -122,6 +124,13 @@ python get_flops.py configs/retinanet_crossformer_s_fpn_1x_coco.py --shape 1280 
   booktitle = {International Conference on Learning Representations, {ICLR}},
   url = {https://openreview.net/forum?id=_PHymLIxuI},
   year = {2022}
+}
+
+@article{wang2023crossformer++,
+  title={Crossformer++: A versatile vision transformer hinging on cross-scale attention},
+  author={Wang, Wenxiao and Chen, Wei and Qiu, Qibo and Chen, Long and Wu, Boxi and Lin, Binbin and He, Xiaofei and Liu, Wei},
+  journal={arXiv preprint arXiv:2303.06908},
+  year={2023}
 }
 ```
 

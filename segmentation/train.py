@@ -80,6 +80,13 @@ def main():
         # use config filename as default work_dir if cfg.work_dir is None
         cfg.work_dir = osp.join('./work_dirs',
                                 osp.splitext(osp.basename(args.config))[0])
+
+    # seperate the position for log and weight
+    work_dir_log = osp.join('./seg-output', 'log',    cfg.work_dir)
+    work_dir_wgt = osp.join('./seg-output', 'weight', cfg.work_dir.split('/')[-2])
+    cfg.checkpoint_config.out_dir = osp.abspath(work_dir_wgt)
+    cfg.work_dir = work_dir_log
+
     if args.load_from is not None:
         cfg.load_from = args.load_from
     if args.resume_from is not None:
@@ -97,7 +104,9 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
 
     # create work_dir
-    mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
+    # mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
+    mmcv.mkdir_or_exist(osp.abspath(work_dir_log))
+    mmcv.mkdir_or_exist(osp.abspath(work_dir_wgt))
     # dump config
     cfg.dump(osp.join(cfg.work_dir, osp.basename(args.config)))
     # init the logger before other steps
@@ -133,6 +142,9 @@ def main():
         cfg.model,
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
+
+    # may need to be commented
+    model.init_weights()
 
     logger.info(model)
 

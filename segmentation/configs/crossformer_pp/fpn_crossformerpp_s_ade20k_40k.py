@@ -1,13 +1,15 @@
 _base_ = [
-    '../configs/_base_/models/fpn_r50.py',
-    '../configs/_base_/datasets/ade20k.py',
-    '../configs/_base_/default_runtime.py'
+    '../_base_/models/fpn_r50.py',
+    '../_base_/datasets/ade20k.py',
+    '../_base_/default_runtime.py'
 ]
 # model settings
 model = dict(
-    pretrained=None,
-    backbone=dict(type='CrossFormer_L', group_size=[14, 14, 7, 7], crs_interval=[16, 8, 2, 1]),
-    neck=dict(in_channels=[128,256,512,1024])
+    backbone=dict(
+        type='CrossFormer_S2', group_size=[7, 7, 7, 7], crs_interval=[8, 4, 2, 1], adaptive_interval=False,
+        init_cfg=dict(type='Pretrained', checkpoint='./backbone-crossformer-s.pth')),
+    neck=dict(in_channels=[64, 128, 256, 512],
+    )
 )
 
 
@@ -21,3 +23,4 @@ lr_config = dict(policy='poly', power=0.9, min_lr=0.0, by_epoch=False)
 runner = dict(type='IterBasedRunner', max_iters=80000//gpu_multiples)
 checkpoint_config = dict(by_epoch=False, interval=8000//gpu_multiples)
 evaluation = dict(interval=8000//gpu_multiples, metric='mIoU')
+device = 'cuda'

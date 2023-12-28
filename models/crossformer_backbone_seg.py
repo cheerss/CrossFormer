@@ -1,9 +1,17 @@
+from collections import OrderedDict
 import numpy as np
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+from mmseg.utils import get_root_logger
+from mmcv.runner import load_checkpoint
+from mmcv.cnn import build_norm_layer, constant_init, trunc_normal_init
+from mmcv.cnn.bricks.transformer import FFN, build_dropout
+from mmcv.cnn.utils.weight_init import trunc_normal_
+from mmcv.runner import BaseModule, ModuleList, _load_checkpoint
 
 NEG_INF = -1000000
 
@@ -70,11 +78,9 @@ class DynamicPosBias(nn.Module):
         return flops
 
 class Attention(nn.Module):
-    r""" Multi-head self attention module with dynamic position bias.
-
+    r""" Multi-head self attention module with relative position bias.
     Args:
         dim (int): Number of input channels.
-        group_size (tuple[int]): The height and width of the group.
         num_heads (int): Number of attention heads.
         qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
@@ -82,39 +88,17 @@ class Attention(nn.Module):
         proj_drop (float, optional): Dropout ratio of output. Default: 0.0
     """
 
-    def __init__(self, dim, group_size, num_heads, qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0.,
+    def __init__(self, dim, num_heads, qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0.,
                  position_bias=True):
 
         super().__init__()
         self.dim = dim
-        self.group_size = group_size  # Wh, Ww
         self.num_heads = num_heads
         head_dim = dim // num_heads
         self.scale = qk_scale or head_dim ** -0.5
         self.position_bias = position_bias
-
-        if position_bias:
+        if self.position_bias:
             self.pos = DynamicPosBias(self.dim // 4, self.num_heads, residual=False)
-            
-            # generate mother-set
-            position_bias_h = torch.arange(1 - self.group_size[0], self.group_size[0])
-            position_bias_w = torch.arange(1 - self.group_size[1], self.group_size[1])
-            biases = torch.stack(torch.meshgrid([position_bias_h, position_bias_w]))  # 2, 2Wh-1, 2Ww-1
-            biases = biases.flatten(1).transpose(0, 1).float()
-            self.register_buffer("biases", biases, persistent=False)
-
-            # get pair-wise relative position index for each token inside the group
-            coords_h = torch.arange(self.group_size[0])
-            coords_w = torch.arange(self.group_size[1])
-            coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Wh, Ww
-            coords_flatten = torch.flatten(coords, 1)  # 2, Wh*Ww
-            relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]  # 2, Wh*Ww, Wh*Ww
-            relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
-            relative_coords[:, :, 0] += self.group_size[0] - 1  # shift to start from 0
-            relative_coords[:, :, 1] += self.group_size[1] - 1
-            relative_coords[:, :, 0] *= 2 * self.group_size[1] - 1
-            relative_position_index = relative_coords.sum(-1)  # Wh*Ww, Wh*Ww
-            self.register_buffer("relative_position_index", relative_position_index, persistent=False)
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
@@ -123,31 +107,50 @@ class Attention(nn.Module):
 
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, H, W, mask=None):
         """
         Args:
-            x: input features with shape of (num_groups*B, N, C)
-            mask: (0/-inf) mask with shape of (num_groups, Wh*Ww, Wh*Ww) or None
+            x: input features with shape of (num_windows*B, N, C)
+            mask: (0/-inf) mask with shape of (num_windows, Gh*Gw, Gh*Gw) or None
         """
+        group_size = (H, W)
         B_, N, C = x.shape
-        qkv = self.qkv(x).reshape(B_, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        assert H*W == N
+        qkv = self.qkv(x).reshape(B_, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4).contiguous()
         q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
         q = q * self.scale
-        # @ stands for matrix multiplication
-        attn = (q @ k.transpose(-2, -1))
+        attn = (q @ k.transpose(-2, -1).contiguous()) # (num_windows*B, N, N), N = Gh*Gw
 
         if self.position_bias:
-            pos = self.pos(self.biases) # 2Wh-1 * 2Ww-1, heads
+            # generate mother-set
+            position_bias_h = torch.arange(1 - group_size[0], group_size[0], device=attn.device)
+            position_bias_w = torch.arange(1 - group_size[1], group_size[1], device=attn.device)
+            biases = torch.stack(torch.meshgrid([position_bias_h, position_bias_w]))  # 2, 2Gh-1, 2W2-1
+            biases = biases.flatten(1).transpose(0, 1).contiguous().float()
+
+            # get pair-wise relative position index for each token inside the window
+            coords_h = torch.arange(group_size[0], device=attn.device)
+            coords_w = torch.arange(group_size[1], device=attn.device)
+            coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Gh, Gw
+            coords_flatten = torch.flatten(coords, 1)  # 2, Gh*Gw
+            relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]  # 2, Gh*Gw, Gh*Gw
+            relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Gh*Gw, Gh*Gw, 2
+            relative_coords[:, :, 0] += group_size[0] - 1  # shift to start from 0
+            relative_coords[:, :, 1] += group_size[1] - 1
+            relative_coords[:, :, 0] *= 2 * group_size[1] - 1
+            relative_position_index = relative_coords.sum(-1)  # Gh*Gw, Gh*Gw
+
+            pos = self.pos(biases) # 2Gh-1 * 2Gw-1, heads
             # select position bias
-            relative_position_bias = pos[self.relative_position_index.view(-1)].view(
-                self.group_size[0] * self.group_size[1], self.group_size[0] * self.group_size[1], -1)  # Wh*Ww,Wh*Ww,nH
-            relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
+            relative_position_bias = pos[relative_position_index.view(-1)].view( 
+                group_size[0] * group_size[1], group_size[0] * group_size[1], -1)  # Gh*Gw,Gh*Gw,nH
+            relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Gh*Gw, Gh*Gw
             attn = attn + relative_position_bias.unsqueeze(0)
 
         if mask is not None:
-            nW = mask.shape[0]
-            attn = attn.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0)
+            nG = mask.shape[0]
+            attn = attn.view(B_ // nG, nG, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0) # (B, nG, nHead, N, N)
             attn = attn.view(-1, self.num_heads, N, N)
             attn = self.softmax(attn)
         else:
@@ -155,28 +158,31 @@ class Attention(nn.Module):
 
         attn = self.attn_drop(attn)
 
-        x = (attn @ v).transpose(1, 2).reshape(B_, N, C)
+        x = (attn @ v).transpose(1, 2).contiguous().reshape(B_, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
 
     def extra_repr(self) -> str:
-        return f'dim={self.dim}, group_size={self.group_size}, num_heads={self.num_heads}'
+        return f'dim={self.dim}, num_heads={self.num_heads}'
 
     def flops(self, N):
-        # calculate flops for 1 group with token length of N
+        # calculate flops for 1 window with token length of N
         flops = 0
+        excluded_flops = 0
         # qkv = self.qkv(x)
         flops += N * self.dim * 3 * self.dim
         # attn = (q @ k.transpose(-2, -1))
         flops += self.num_heads * N * (self.dim // self.num_heads) * N
+        excluded_flops += self.num_heads * N * (self.dim // self.num_heads) * N
         #  x = (attn @ v)
         flops += self.num_heads * N * N * (self.dim // self.num_heads)
+        excluded_flops += self.num_heads * N * N * (self.dim // self.num_heads)
         # x = self.proj(x)
         flops += N * self.dim * self.dim
         if self.position_bias:
             flops += self.pos.flops(N)
-        return flops
+        return flops, excluded_flops
 
 
 class CrossFormerBlock(nn.Module):
@@ -218,15 +224,12 @@ class CrossFormerBlock(nn.Module):
         self.pad_type = pad_type
         self.use_extra_conv = use_extra_conv
         self.use_cpe = use_cpe
-        if min(self.input_resolution) <= self.group_size:
-            # if group size is larger than input resolution, we don't partition groups
-            self.lsda_flag = 0
-            self.group_size = min(self.input_resolution)
+        self.adaptive_interval = adaptive_interval
 
         self.norm1 = norm_layer(dim)
 
         self.attn = Attention(
-            dim, group_size=to_2tuple(self.group_size), num_heads=num_heads,
+            dim, num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop,
             position_bias=(not use_cpe))
 
@@ -234,8 +237,8 @@ class CrossFormerBlock(nn.Module):
             self.cpe = nn.Conv2d(in_channels=input_resolution[0], out_channels=input_resolution[0], kernel_size=3, padding=1, groups=input_resolution[0])
             self.norm_cpe = norm_layer(dim)
 
-        if adaptive_interval:
-            self.interval = int(np.ceil(self.input_resolution[0] / self.group_size))
+        # if adaptive_interval:
+        #     self.interval = int(np.ceil(self.input_resolution[0] / self.group_size))
 
         if self.use_extra_conv:
             self.ex_kernel = [3, 3]
@@ -248,68 +251,21 @@ class CrossFormerBlock(nn.Module):
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
-        # compute attention mask
-        attn_mask = None
-
-        if not no_mask:
-            H, W = self.input_resolution
-
-            size_div = self.interval * self.group_size if self.lsda_flag == 1 else self.group_size
-
-            pad_w = (size_div - W % size_div) % size_div
-            pad_h = (size_div - H % size_div) % size_div
-
-            if self.pad_type == 0:
-                pad_l = pad_t = 0
-            else:
-                pad_l = pad_w // 2
-                pad_t = pad_h // 2
-            
-            pad_r = pad_w - pad_l
-            pad_b = pad_h - pad_t
-
-            Hp = H + pad_h
-            Wp = W + pad_w
-
-            mask = torch.zeros((1, Hp, Wp, 1))
-            if pad_h > 0:
-                mask[:, -pad_b:, :, :] = -1
-                mask[:, : pad_t, :, :] = -1
-            if pad_w > 0:
-                mask[:, :, -pad_r:, :] = -1
-                mask[:, :, : pad_l, :] = -1
-
-            if self.lsda_flag == 0: # 0 for SDA
-                G = Gh = Gw = self.group_size
-                nG = Hp * Wp // G**2
-                # attn_mask
-                if pad_w > 0 or pad_h > 0:
-                    mask = mask.reshape(1, Hp // G, G, Wp // G, G, 1).permute(0, 1, 3, 2, 4, 5).contiguous()
-                    mask = mask.reshape(nG, 1, G * G)
-                    attn_mask = torch.zeros((nG, G * G, G * G))
-                    attn_mask = attn_mask.masked_fill(mask < 0, NEG_INF)
-                else:
-                    attn_mask = None
-            else: # 1 for LDA
-                I = self.interval
-                G = Gh = Gw = self.group_size
-                Rh, Rw = Hp // (Gh * I), Wp // (Gw * I)
-                nG = I ** 2 * Rh * Rw
-                # attn_mask
-                if pad_w > 0 or pad_h > 0:
-                    mask = mask.reshape(1, Rh, Gh, I, Rw, Gw, I, 1).permute(0, 1, 4, 3, 6, 2, 5, 7).contiguous()
-                    mask = mask.reshape(nG, 1, Gh * Gw)
-                    attn_mask = torch.zeros((nG, Gh * Gw, Gh * Gw))
-                    attn_mask = attn_mask.masked_fill(mask < 0, NEG_INF)
-                else:
-                    attn_mask = None
-
-        self.register_buffer("attn_mask", attn_mask, persistent=False)
-
-    def forward(self, x):
-        H, W = self.input_resolution
+    def forward(self, x, H, W):
+        # H, W = self.input_resolution
         B, L, C = x.shape
         assert L == H * W, "input feature has wrong size %d, %d, %d" % (L, H, W)
+
+        if min(H, W) <= self.group_size:
+            # if window size is larger than input resolution, we don't partition windows
+            self.lsda_flag = 0
+            # group_size = min(H, W)
+            group_size = max(H, W)
+        else:
+            group_size = self.group_size
+
+        if self.adaptive_interval:
+            self.interval = math.ceil(max(H, W) / group_size)
 
         shortcut = x
         x = self.norm1(x)
@@ -319,61 +275,76 @@ class CrossFormerBlock(nn.Module):
             x = x + self.norm_cpe(self.cpe(x))
 
         # padding
-        size_div = self.interval * self.group_size if self.lsda_flag == 1 else self.group_size
-
-        pad_w = (size_div - W % size_div) % size_div
-        pad_h = (size_div - H % size_div) % size_div
-
-        if self.pad_type == 0:
-            pad_l = pad_t = 0
-        else:
-            pad_l = pad_w // 2
-            pad_t = pad_h // 2
-        
-        pad_r = pad_w - pad_l
-        pad_b = pad_h - pad_t
-
+        size_div = self.interval * group_size if self.lsda_flag == 1 else group_size
+        pad_l = pad_t = 0
+        pad_r = (size_div - W % size_div) % size_div
+        pad_b = (size_div - H % size_div) % size_div
         x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
         _, Hp, Wp, _ = x.shape
 
-        # group embeddings
-        if self.lsda_flag == 0: # 0 for SDA
-            G = Gh = Gw = self.group_size
-            x = x.reshape(B, Hp // G, G, Wp // G, G, C).permute(0, 1, 3, 2, 4, 5)
+        mask = torch.zeros((1, Hp, Wp, 1), device=x.device)
+        if pad_b > 0:
+            mask[:, -pad_b:, :, :] = -1
+        if pad_r > 0:
+            mask[:, :, -pad_r:, :] = -1
+
+        # group embeddings and generate attn_mask
+        if self.lsda_flag == 0: # SDA
+            G = Gh = Gw = group_size
+            x = x.reshape(B, Hp // G, G, Wp // G, G, C).permute(0, 1, 3, 2, 4, 5).contiguous()
             x = x.reshape(B * Hp * Wp // G**2, G**2, C)
-        else: # 1 for LDA
-            I = self.interval
-            G = Gh = Gw = self.group_size
+            nG = Hp * Wp // G**2
+            # attn_mask
+            if pad_r > 0 or pad_b > 0:
+                mask = mask.reshape(1, Hp // G, G, Wp // G, G, 1).permute(0, 1, 3, 2, 4, 5).contiguous()
+                mask = mask.reshape(nG, 1, G * G)
+                attn_mask = torch.zeros((nG, G * G, G * G), device=x.device)
+                attn_mask = attn_mask.masked_fill(mask < 0, NEG_INF)
+            else:
+                attn_mask = None
+        else: # LDA
+            I, Gh, Gw = self.interval, group_size, group_size
             Rh, Rw = Hp // (Gh * I), Wp // (Gw * I)
             x = x.reshape(B, Rh, Gh, I, Rw, Gw, I, C).permute(0, 1, 4, 3, 6, 2, 5, 7).contiguous()
             x = x.reshape(B * Rh * Rw * I * I, Gh * Gw, C)
+            nG = I ** 2 * Rh * Rw
+            # attn_mask
+            if pad_r > 0 or pad_b > 0:
+                mask = mask.reshape(1, Rh, Gh, I, Rw, Gw, I, 1).permute(0, 1, 4, 3, 6, 2, 5, 7).contiguous()
+                mask = mask.reshape(nG, 1, Gh * Gw)
+                attn_mask = torch.zeros((nG, Gh * Gw, Gh * Gw), device=x.device)
+                attn_mask = attn_mask.masked_fill(mask < 0, NEG_INF)
+            else:
+                attn_mask = None
 
         # multi-head self-attention
-        x = self.attn(x, mask=self.attn_mask)  # nW*B, G*G, C
-
+        x = self.attn(x, Gh, Gw, mask=attn_mask)  # nG*B, G*G, C
+        
         # ungroup embeddings
         if self.lsda_flag == 0:
             x = x.reshape(B, Hp // G, Wp // G, G, G, C).permute(0, 1, 3, 2, 4, 5).contiguous() # B, Hp//G, G, Wp//G, G, C
         else:
             x = x.reshape(B, Rh, Rw, I, I, Gh, Gw, C).permute(0, 1, 5, 3, 2, 6, 4, 7).contiguous() # B, Rh, Gh, I, Rw, Gw, I, C
-        x = x.view(B, Hp, Wp, C)
+        x = x.reshape(B, Hp, Wp, C)
 
         # remove padding
-        if pad_w > 0 or pad_h > 0:
-            x = x[:, pad_t:H+pad_t, pad_l:W+pad_l, :].contiguous()
+        if pad_r > 0 or pad_b > 0:
+            x = x[:, :H, :W, :].contiguous()
         x = x.view(B, H * W, C)
 
         # FFN
         x = shortcut + self.drop_path(x)
         x = x + self.drop_path(self.mlp(self.norm2(x)))
 
+        # cooling layer
         if self.use_extra_conv:
             x = x.view(B, H, W, C).permute(0, 3, 1, 2).contiguous()
             x = self.ex_conv(x)
-            x = x.permute(0, 2, 3, 1).view(B, H * W, C).contiguous()
+            x = x.permute(0, 2, 3, 1).contiguous().view(B, H * W, C)
             x = self.ex_ln(x)
 
         return x
+
 
     def extra_repr(self) -> str:
         return f"dim={self.dim}, input_resolution={self.input_resolution}, num_heads={self.num_heads}, " \
@@ -385,14 +356,20 @@ class CrossFormerBlock(nn.Module):
         H, W = self.input_resolution
         # norm1
         flops += self.dim * H * W
-        # LSDA
-        nW = H * W / self.group_size / self.group_size
-        flops += nW * self.attn.flops(self.group_size * self.group_size)
+        # Attention
+        size_div = self.interval * self.group_size if self.lsda_flag == 1 else self.group_size
+        Hp = math.ceil(H / size_div) * size_div
+        Wp = math.ceil(W / size_div) * size_div
+        Gh = Gw = self.group_size
+        nG = Hp * Wp / Gh / Gw
+        attn_flops, attn_excluded_flops = self.attn.flops(Gh * Gw)
+        flops += nG * attn_flops
+        excluded_flops = nG * attn_excluded_flops
         # mlp
         flops += 2 * H * W * self.dim * self.dim * self.mlp_ratio
         # norm2
         flops += self.dim * H * W
-        return flops
+        return flops, excluded_flops
 
 class PatchMerging(nn.Module):
     r""" Patch Merging Layer.
@@ -421,21 +398,20 @@ class PatchMerging(nn.Module):
             self.reductions.append(nn.Conv2d(dim, out_dim, kernel_size=ps, 
                                                 stride=stride, padding=padding))
 
-    def forward(self, x):
+    def forward(self, x, H, W):
         """
         x: B, H*W, C
         """
-        H, W = self.input_resolution
         B, L, C = x.shape
         assert L == H * W, "input feature has wrong size"
         assert H % 2 == 0 and W % 2 == 0, f"x size ({H}*{W}) are not even."
 
         x = self.norm(x)
-        x = x.view(B, H, W, C).permute(0, 3, 1, 2)
+        x = x.view(B, H, W, C).permute(0, 3, 1, 2).contiguous()
 
         xs = []
         for i in range(len(self.reductions)):
-            tmp_x = self.reductions[i](x).flatten(2).transpose(1, 2)
+            tmp_x = self.reductions[i](x).flatten(2).transpose(1, 2).contiguous()
             xs.append(tmp_x)
         x = torch.cat(xs, dim=2)
         return x
@@ -518,26 +494,33 @@ class Stage(nn.Module):
         else:
             self.downsample = None
 
-    def forward(self, x):
+    def forward(self, x, H, W):
         for blk in self.blocks:
             if self.use_checkpoint:
                 x = checkpoint.checkpoint(blk, x)
             else:
-                x = blk(x)
+                x = blk(x, H, W)
+        
+        B, _, C = x.shape
+        feat = x.view(B, H, W, C).permute(0, 3, 1, 2).contiguous()
+        
         if self.downsample is not None:
-            x = self.downsample(x)
-        return x
+            x = self.downsample(x, H, W)
+        return feat, x
 
     def extra_repr(self) -> str:
         return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
 
     def flops(self):
         flops = 0
+        excluded_flops = 0
         for blk in self.blocks:
-            flops += blk.flops()
+            blk_flops, blk_excluded_flops = blk.flops()
+            flops += blk_flops
+            excluded_flops += blk_excluded_flops
         if self.downsample is not None:
             flops += self.downsample.flops()
-        return flops
+        return flops, excluded_flops
 
 
 class PatchEmbed(nn.Module):
@@ -581,16 +564,16 @@ class PatchEmbed(nn.Module):
     def forward(self, x):
         B, C, H, W = x.shape
         # FIXME look at relaxing size constraints
-        assert H == self.img_size[0] and W == self.img_size[1], \
-            f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
+        # assert H == self.img_size[0] and W == self.img_size[1], \
+        #     f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
         xs = []
         for i in range(len(self.projs)):
-            tx = self.projs[i](x).flatten(2).transpose(1, 2)
+            tx = self.projs[i](x).flatten(2).transpose(1, 2).contiguous()
             xs.append(tx)  # B Ph*Pw C
         x = torch.cat(xs, dim=2)
         if self.norm is not None:
             x = self.norm(x)
-        return x
+        return x, H, W
 
     def flops(self):
         Ho, Wo = self.patches_resolution
@@ -642,7 +625,7 @@ class CrossFormer(nn.Module):
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
                  use_checkpoint=False, merge_size=[[2], [2], [2]], use_cpe=False,
                  group_type='constant', pad_type=0, no_mask=False,
-                 adaptive_interval=False, use_acl=False,  **kwargs):
+                 adaptive_interval=False, use_acl=False, init_cfg=None,  **kwargs):
         super().__init__()
 
         self.num_classes = num_classes
@@ -688,7 +671,7 @@ class CrossFormer(nn.Module):
                                num_heads=num_heads[i_layer],
                                group_size=group_size[i_layer],
                                interval=crs_interval[i_layer],
-                               mlp_ratio=self.mlp_ratio[i_layer],
+                               mlp_ratio=self.mlp_ratio,
                                qkv_bias=qkv_bias, qk_scale=qk_scale,
                                drop=drop_rate, attn_drop=attn_drop_rate,
                                drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
@@ -704,11 +687,7 @@ class CrossFormer(nn.Module):
                                use_acl=use_acl)
             self.layers.append(layer)
 
-        self.norm = norm_layer(self.num_features)
-        self.avgpool = nn.AdaptiveAvgPool1d(1)
-        self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
-
-        self.apply(self._init_weights)
+        self.init_cfg = init_cfg
 
     def compute_group_size(self, group_size=[7, 7, 7, 7], depths=[2, 2, 6, 2], resolution=[56, 56], group_type='constant'):
         r"""genenrate group size for crossformer
@@ -752,19 +731,52 @@ class CrossFormer(nn.Module):
                     rst_group_size[i_stage].append(group_size[i_stage] if i_stage != 2 or i_block >= 4 else group_size[i_stage] // 2) 
                 cnt += 1
 
-        print("Group Size:")
-        print(rst_group_size)
+        logger = get_root_logger()
+        logger.info("Group Size:")
+        logger.info(rst_group_size)
 
         return rst_group_size
 
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=.02)
-            if isinstance(m, nn.Linear) and m.bias is not None:
-                nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.LayerNorm):
-            nn.init.constant_(m.bias, 0)
-            nn.init.constant_(m.weight, 1.0)
+    def init_weights(self):
+        logger = get_root_logger()
+        if self.init_cfg is None:
+            logger.warn(f'No pre-trained weights for '
+                        f'{self.__class__.__name__}, '
+                        f'training start from scratch')
+            if self.use_abs_pos_embed:
+                trunc_normal_(self.absolute_pos_embed, std=0.02)
+            for m in self.modules():
+                if isinstance(m, nn.Linear):
+                    trunc_normal_init(m, std=.02, bias=0.)
+                elif isinstance(m, nn.LayerNorm):
+                    constant_init(m, 1.0)
+        else:
+            assert 'checkpoint' in self.init_cfg, f'Only support ' \
+                                                  f'specify `Pretrained` in ' \
+                                                  f'`init_cfg` in ' \
+                                                  f'{self.__class__.__name__} '
+            ckpt = _load_checkpoint(
+                self.init_cfg.checkpoint, logger=logger, map_location='cpu')
+            if 'state_dict' in ckpt:
+                _state_dict = ckpt['state_dict']
+            elif 'model' in ckpt:
+                _state_dict = ckpt['model']
+            else:
+                _state_dict = ckpt
+
+            state_dict = OrderedDict()
+            for k, v in _state_dict.items():
+                if k.startswith('backbone.'):
+                    state_dict[k[9:]] = v
+                else:
+                    state_dict[k] = v
+
+            # strip prefix of state_dict
+            if list(state_dict.keys())[0].startswith('module.'):
+                state_dict = {k[7:]: v for k, v in state_dict.items()}
+
+            # load state_dict
+            self.load_state_dict(state_dict, False)
 
     @torch.jit.ignore
     def no_weight_decay(self):
@@ -774,30 +786,29 @@ class CrossFormer(nn.Module):
     def no_weight_decay_keywords(self):
         return {'relative_position_bias_table'}
 
-    def forward_features(self, x):
-        x = self.patch_embed(x)
+    def forward(self, x):
+        x, H, W = self.patch_embed(x)
+
         if self.ape:
             x = x + self.absolute_pos_embed
+        
         x = self.pos_drop(x)
 
-        for layer in self.layers:
-            x = layer(x)
+        outs = []
+        for i, layer in enumerate(self.layers):
+            feat, x = layer(x, H // 4 // 2**i, W // 4 // 2**i)
+            outs.append(feat)
 
-        x = self.norm(x)  # B L C
-        x = self.avgpool(x.transpose(1, 2))  # B C 1
-        x = torch.flatten(x, 1)
-        return x
-
-    def forward(self, x):
-        x = self.forward_features(x)
-        x = self.head(x)
-        return x
+        return outs
 
     def flops(self):
         flops = 0
+        excluded_flops = 0
         flops += self.patch_embed.flops()
         for i, layer in enumerate(self.layers):
-            flops += layer.flops()
-        flops += self.num_features * self.patches_resolution[0] * self.patches_resolution[1] // (2 ** self.num_layers)
-        flops += self.num_features * self.num_classes
-        return flops
+            layer_flops, layer_excluded_flops = layer.flops()
+            flops += layer_flops
+            excluded_flops += layer_excluded_flops
+        # flops += self.num_features * self.patches_resolution[0] * self.patches_resolution[1] // (2 ** self.num_layers)
+        # flops += self.num_features * self.num_classes
+        return flops, excluded_flops
