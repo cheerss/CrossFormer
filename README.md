@@ -18,7 +18,7 @@ The [crossformer](https://github.com/cheerss/CrossFormer/tree/crossformer) branc
 - [x] Cascade Mask-RCNN detection/instance segmentation results with 3x training schedule.
 - [x] The usage of `get_flops.py` in detection and segmentation.
 - [x] Upload the pretrained CrossFormer-L.
-- [ ] Upload the pretrained models for CrossFormer++-S/B/L classification.
+- [x] Upload the pretrained models for CrossFormer++-S/B/L/H classification.
 - [ ] Upload CrossFormer++-S/B/L for detection and segmentation.
 
 
@@ -136,12 +136,12 @@ Models trained on ImageNet-1K and evaluated on its validation set. The input ima
 | RegNetY-8G | 39.0M | 8.0G | 81.7% |     -        |
 | **CrossFormer-T** | **27.8M**  | **2.9G**  | **81.5%**    | [Google Drive](https://drive.google.com/file/d/1YSkU9enn-ITyrbxLH13zNcBYvWSEidfq/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1M45YXZgVvp6Ew9DO8UhdlA), key: nkju |
 | **CrossFormer-S** | **30.7M**  | **4.9G**  | **82.5%**    | [Google Drive](https://drive.google.com/file/d/1RAkigsgr33va0RZ85S2Shs2BhXYcS6U8/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1Xf4MXfb_soCnJFBeNDmoQQ), key: fgqj |
-| **CrossFormer++-S** | **23.3M**  | **4.9G**  | **83.2%**    | - |
+| **CrossFormer++-S** | **23.3M**  | **4.9G**  | **83.2%**    | [BaiduCloud](https://pan.baidu.com/s/1smc_kRoogd0Ig5vfqwuGTA?pwd=crsf), key:crsf |
 | **CrossFormer-B** | **52.0M**  | **9.2G**  | **83.4%**    | [Google Drive](https://drive.google.com/file/d/1bK8biVCi17nz_nkt7rBfio_kywUpllSU/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1f5dH__UGDXb-HoOPHT5p0A), key: 7md9 |
-| **CrossFormer++-B** | **52.0M**  | **9.5G**  | **84.2%**    | - |
+| **CrossFormer++-B** | **52.0M**  | **9.5G**  | **84.2%**    | [BaiduCloud](https://pan.baidu.com/s/13XVP0ebtNcyRMmkl11ALYg?pwd=crsf), key:crsf |
 | **CrossFormer-L** | **92.0M**  | **16.1G** | **84.0%**    | [Google Drive](https://drive.google.com/file/d/1zRWByVW_KIZ87NgaBkDIm60DAsGJErdG/view?usp=sharing)/[BaiduCloud](https://pan.baidu.com/s/1YJLeHy_cxLBrZLklQBCA_A), key: cc89|
-| **CrossFormer++-L** | **92.0M**  | **16.6G** | **84.7%**    | - |
-
+| **CrossFormer++-L** | **92.0M**  | **16.6G** | **84.7%**    | [BaiduCloud](https://pan.baidu.com/s/1xtPh-ndcOxRM7fPYYxIIRg?pwd=crsf), key:crsf  |
+| **CrossFormer++-H** | **96.0M**  | **21.8G** | **84.9%**    | [BaiduCloud](https://pan.baidu.com/s/1xtPh-ndcOxRM7fPYYxIIRg?pwd=crsf), key:crsf  |
 
 More results compared with other vision transformers can be seen in the [paper](https://arxiv.org/pdf/2108.00154.pdf).
 
